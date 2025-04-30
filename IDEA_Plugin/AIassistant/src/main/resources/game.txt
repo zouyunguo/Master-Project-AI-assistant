@@ -1,0 +1,1 @@
+I plan to develop a first person shooting game which contains some rogue-like features, which means that after each fail in each stage the enemy levels and weapons you use will change accordingly.
