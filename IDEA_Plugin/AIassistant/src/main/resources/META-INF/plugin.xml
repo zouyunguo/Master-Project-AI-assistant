@@ -25,5 +25,6 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow factoryClass="mp25.aiassistant.SideBarWindow" id="sidebar"></toolWindow>
+        <applicationService serviceImplementation="mp25.aiassistant.OllamaSettings"/>
     </extensions>
 </idea-plugin>
