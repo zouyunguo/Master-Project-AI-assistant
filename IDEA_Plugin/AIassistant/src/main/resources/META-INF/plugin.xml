@@ -24,6 +24,6 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="mp25.aiassistant.SideBarWindow" id="sidebar"></toolWindow>
+        <toolWindow factoryClass="mp25.aiassistant.SideBarWindow" id="AI Assistant"></toolWindow>
     </extensions>
 </idea-plugin>

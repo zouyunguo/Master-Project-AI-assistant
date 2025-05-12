@@ -19,7 +19,7 @@ public class SideBarWindow implements ToolWindowFactory {
         // toolWindow.getComponent().add(createPanel());
         MainLayer mainlayer =new MainLayer();
         JPanel panel =mainlayer.getMainPanel();
-        panel.setPreferredSize(new Dimension(800, 600));
+        panel.setPreferredSize(new Dimension(80, 60));
         Content content=ContentFactory.getInstance().createContent(panel,"",false);
         toolWindow.getContentManager().addContent(content);
     }
