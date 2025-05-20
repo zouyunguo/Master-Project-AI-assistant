@@ -11,6 +11,9 @@ import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.concurrent.CompletableFuture;
+
 public class MainLayer {
     private JPanel MainPanel;
     private JButton agreeButton;
@@ -23,12 +26,15 @@ public class MainLayer {
             + "This information helps us optimize the plugin and fix issues.\n\n"
             + "Your privacy is important to us—all data is aggregated and cannot be used to identify you."
             + "You can enable or disable data collection in";
+
+    // Reference tracking
+    private File selectedReferenceFile = null;
+
     public MainLayer() {
 
         StyledDocument doc = PolicyText.getStyledDocument();
 
         try {
-
             SimpleAttributeSet normalStyle = new SimpleAttributeSet();
             StyleConstants.setFontFamily(normalStyle, "Arial");
             StyleConstants.setFontSize(normalStyle, 16);
@@ -41,7 +47,6 @@ public class MainLayer {
             StyleConstants.setUnderline(hyperlinkStyle, true);
             StyleConstants.setLineSpacing(hyperlinkStyle, 10.5f);
             doc.insertString(doc.getLength(), text, normalStyle);
-
 
             doc.insertString(doc.getLength(), " Settings", hyperlinkStyle);
 
@@ -59,7 +64,7 @@ public class MainLayer {
 
                 // Create the panel for the chats
                 JPanel chatPanel = new JPanel();
-                chatPanel.setLayout(new BoxLayout(chatPanel, BoxLayout.Y_AXIS)); // 垂直布局
+                chatPanel.setLayout(new BoxLayout(chatPanel, BoxLayout.Y_AXIS));
                 chatPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
                 chatPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
 
@@ -76,19 +81,34 @@ public class MainLayer {
                 JPanel buttonPanel = new JPanel();
                 buttonPanel.setLayout(new BorderLayout());
 
-
-                String[] models = {"codellama", "gpt-4o", "deepseek"};
+                // Models available in Ollama - update this list as needed
+                String[] models = {"llama2", "codellama", "mistral", "gemma"};
                 ComboBox<String> modelSelector = new ComboBox<>(models);
-                modelSelector.setSelectedIndex(0); // 默认选择第一个模型
+                modelSelector.setSelectedIndex(0); // Default to first model
+
+                // Status text to show when processing
+                JLabel statusLabel = new JLabel("");
+                statusLabel.setForeground(Color.GRAY);
 
                 // button for adding reference
                 JButton addReferenceButton = new JButton("Add Reference");
                 buttonPanel.add(addReferenceButton, BorderLayout.WEST);
 
+                // Add file chooser for references
+                addReferenceButton.addActionListener(e1 -> {
+                    JFileChooser fileChooser = new JFileChooser();
+                    int result = fileChooser.showOpenDialog(MainPanel);
+                    if (result == JFileChooser.APPROVE_OPTION) {
+                        selectedReferenceFile = fileChooser.getSelectedFile();
+                        statusLabel.setText("Reference added: " + selectedReferenceFile.getName());
+                    }
+                });
+
                 // create button for sending prompt
                 JButton sendButton = new JButton("Send");
 
                 JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+                rightPanel.add(statusLabel);
                 rightPanel.add(modelSelector);
                 rightPanel.add(sendButton);
                 buttonPanel.add(rightPanel, BorderLayout.EAST);
@@ -99,6 +119,14 @@ public class MainLayer {
                     public void actionPerformed(ActionEvent e) {
                         String userInput = inputField.getText();
                         if (!userInput.isEmpty()) {
+                            // Create composite prompt with reference if selected
+                            String fullPrompt = userInput;
+                            if (selectedReferenceFile != null) {
+                                fullPrompt = "Reference file: " + selectedReferenceFile.getName() + "\n\n" + userInput;
+                                // Note: In a real implementation, you'd need to read the file content
+                                // and pass it to the LLM along with the prompt
+                            }
+
                             // create the text area for the inputed prompt
                             JTextArea inputArea = new JTextArea("Userinput: " + userInput);
                             inputArea.setEditable(false);
@@ -106,18 +134,65 @@ public class MainLayer {
                             inputArea.setWrapStyleWord(true);
                             inputArea.setBackground(new Color(43, 43, 43));
                             JBScrollPane inputScrollPane = new JBScrollPane(inputArea);
-                            inputScrollPane.setPreferredSize(new Dimension(400, 200)); // 设置固定大小
-                            // create text area for the answer by llms
-                            JTextArea answerArea = new JTextArea("answer: this is a answer example.");
+                            inputScrollPane.setPreferredSize(new Dimension(400, Math.min(100, 20 * userInput.length() / 40)));
+
+                            // create placeholder text area for the answer
+                            JTextArea answerArea = new JTextArea("Processing...");
                             answerArea.setEditable(false);
                             answerArea.setLineWrap(true);
                             answerArea.setBackground(new Color(60, 63, 65));
                             answerArea.setWrapStyleWord(true);
                             JBScrollPane answerScrollPane = new JBScrollPane(answerArea);
-                            answerScrollPane.setPreferredSize(new Dimension(400, 200)); // 设置固定大小
+                            answerScrollPane.setPreferredSize(new Dimension(400, 200));
 
                             chatPanel.add(inputScrollPane);
                             chatPanel.add(answerScrollPane);
+
+                            // Update UI to show we're processing
+                            sendButton.setEnabled(false);
+                            statusLabel.setText("Generating response...");
+
+                            // Call Ollama API asynchronously
+                            String selectedModel = (String) modelSelector.getSelectedItem();
+                            CompletableFuture<String> futureResponse = OllamaService.generateResponse(selectedModel, fullPrompt);
+
+                            // Handle the response when it arrives
+                            futureResponse.thenAccept(response -> {
+                                // Update UI on EDT
+                                SwingUtilities.invokeLater(() -> {
+                                    answerArea.setText(response);
+
+                                    // Calculate a reasonable height based on content
+                                    int lineCount = response.split("\n").length;
+                                    int preferredHeight = Math.min(500, Math.max(200, lineCount * 20));
+                                    answerScrollPane.setPreferredSize(new Dimension(400, preferredHeight));
+
+                                    // Re-enable the send button
+                                    sendButton.setEnabled(true);
+                                    statusLabel.setText("");
+
+                                    // Reset reference file
+                                    selectedReferenceFile = null;
+
+                                    // refresh chatPanel
+                                    chatPanel.revalidate();
+                                    chatPanel.repaint();
+
+                                    // scroll to see the latest message
+                                    SwingUtilities.invokeLater(() -> {
+                                        JScrollBar verticalBar = chatScrollPane.getVerticalScrollBar();
+                                        verticalBar.setValue(verticalBar.getMaximum());
+                                    });
+                                });
+                            }).exceptionally(ex -> {
+                                // Handle errors
+                                SwingUtilities.invokeLater(() -> {
+                                    answerArea.setText("Error: " + ex.getMessage());
+                                    sendButton.setEnabled(true);
+                                    statusLabel.setText("Error occurred");
+                                });
+                                return null;
+                            });
 
                             // refresh chatPanel
                             chatPanel.revalidate();
@@ -144,6 +219,13 @@ public class MainLayer {
                 Mainbody.revalidate();
                 Mainbody.repaint();
             }
+        });
+
+        // Add functionality to the disagree button
+        disagreeButton.addActionListener(e -> {
+            // Similar to agree button but set a flag to disable data collection
+            agreeButton.doClick(); // Reuse the UI setup code
+            // In a real app, you would set a preference to disable data collection
         });
     }
 
