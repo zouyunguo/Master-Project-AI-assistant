@@ -158,7 +158,7 @@ public class MainLayer {
                             inputArea.setLineWrap(true);
                             inputArea.setWrapStyleWord(true);
                             inputArea.setBackground(new Color(43, 45, 48));
-                            inputArea.setPreferredSize(new Dimension(350, Math.max(50, 20 * userInput.length() / 40)));
+                            inputArea.setPreferredSize(new Dimension(350, Math.max(200, 20 * userInput.length() / 40)));
                             inputArea.setMargin(new Insets(0, 0, 25, 25));
                             inputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // 设置边框为空，确保内边距生效
 
@@ -192,7 +192,7 @@ public class MainLayer {
 
                                     // Calculate a reasonable height based on content
                                     int lineCount = response.split("\n").length;
-                                    int preferredHeight = Math.max(50, lineCount * 20);
+                                    int preferredHeight = Math.max(200, lineCount * 20);
                                     answerArea.setPreferredSize(new Dimension(350, preferredHeight));
 
                                     // Re-enable the send button
