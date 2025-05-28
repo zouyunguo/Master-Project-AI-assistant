@@ -1,5 +1,6 @@
 package mp25.aiassistant;
 
+import mp25.aiassistant.chat.ChatSession;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -8,6 +9,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * Service for communicating with Ollama API
@@ -16,26 +18,32 @@ public class OllamaService {
     private static final String BASE_URL = "http://localhost:11434/";
 
     /**
-     * Send prompt to the Ollama API asynchronously
+     * Send prompt to the Ollama API asynchronously with session context
      *
      * @param model The model name to use
      * @param prompt The user's prompt
+     * @param session The chat session containing context
      * @return CompletableFuture with the response string
      */
-    public static CompletableFuture<String> generateResponse(String model, String prompt) {
+    public static CompletableFuture<String> generateResponse(String model, String prompt, ChatSession session) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                URL url = new URL(BASE_URL+"api/generate");
+                URL url = new URL(BASE_URL + "api/generate");
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/json");
                 connection.setDoOutput(true);
 
-                // Create request JSON
+                // Build context from session messages
+                String context = session.getMessages().stream()
+                        .map(msg -> (msg.isUser() ? "User: " : "Assistant: ") + msg.getContent())
+                        .collect(Collectors.joining("\n"));
+
+                // Create request JSON with context
                 JSONObject requestBody = new JSONObject();
                 requestBody.put("model", model);
-                requestBody.put("prompt", prompt);
-                requestBody.put("stream", false);  // Get complete response at once
+                requestBody.put("prompt", context + "\nUser: " + prompt + "\nAssistant:");
+                requestBody.put("stream", false);
 
                 // Send request
                 try (OutputStream os = connection.getOutputStream()) {
@@ -71,14 +79,15 @@ public class OllamaService {
     /**
      * Get the list of available models from the Ollama API
      *
-     * @return CompletableFuture with the JSON response string
-     */public static CompletableFuture<String[]> getModels() {
-         return CompletableFuture.supplyAsync(() -> {
-             try {
-                 URL url = new URL(BASE_URL + "api/tags");
-                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                 connection.setRequestMethod("GET");
-                 connection.setRequestProperty("Content-Type", "application/json");
+     * @return CompletableFuture with array of model names
+     */
+    public static CompletableFuture<String[]> getModels() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                URL url = new URL(BASE_URL + "api/tags");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Content-Type", "application/json");
 
                  // Read response
                  int responseCode = connection.getResponseCode();

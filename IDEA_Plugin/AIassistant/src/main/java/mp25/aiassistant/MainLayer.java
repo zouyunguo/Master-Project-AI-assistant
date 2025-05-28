@@ -1,7 +1,10 @@
 package mp25.aiassistant;
 
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.components.JBScrollPane;
+import mp25.aiassistant.chat.ChatSession;
+import mp25.aiassistant.chat.SessionManager;
 
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
@@ -12,7 +15,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.Serializable;
 import java.util.concurrent.CompletableFuture;
 import com.intellij.icons.AllIcons;
 public class MainLayer {
@@ -21,6 +23,14 @@ public class MainLayer {
     private JButton disagreeButton;
     private JPanel Mainbody;
     private JTextPane PolicyText;
+    private JPanel sessionPanel;
+    private JList<ChatSession> sessionList;
+    private JButton newSessionButton;
+    private JButton renameSessionButton;
+    private JButton deleteSessionButton;
+    private final SessionManager sessionManager;
+    private DefaultListModel<ChatSession> sessionListModel;
+
     private String text = "To provide you with a better and more personalized experience,"
             + "we collect anonymized usage data, such as feature interactions frequencies,"
             + "performance metrics, and error reports."
@@ -32,7 +42,26 @@ public class MainLayer {
     private File selectedReferenceFile = null;
 
     public MainLayer() {
+        sessionManager = new SessionManager();
+        sessionListModel = new DefaultListModel<>();
+        sessionList.setModel(sessionListModel);
+        sessionList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof ChatSession) {
+                    setText(((ChatSession) value).getName());
+                }
+                return this;
+            }
+        });
 
+        setupUI();
+        setupSessionControls();
+    }
+
+    private void setupUI() {
         StyledDocument doc = PolicyText.getStyledDocument();
 
         try {
@@ -76,9 +105,80 @@ public class MainLayer {
         } catch (BadLocationException e) {
             e.printStackTrace();
         }
-        agreeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        agreeButton.addActionListener(e -> setupChatUI());
+        disagreeButton.addActionListener(e -> setupChatUI());
+    }
+
+    private void setupSessionControls() {
+        newSessionButton.addActionListener(e -> {
+            String name = Messages.showInputDialog(
+                    MainPanel,
+                    "Enter session name:",
+                    "New Chat Session",
+                    Messages.getQuestionIcon());
+            if (name != null && !name.trim().isEmpty()) {
+                ChatSession session = sessionManager.createNewSession(name.trim());
+                updateSessionList();
+                sessionList.setSelectedValue(session, true);
+            }
+        });
+
+        renameSessionButton.addActionListener(e -> {
+            ChatSession selected = sessionList.getSelectedValue();
+            if (selected != null) {
+                String newName = Messages.showInputDialog(
+                        MainPanel,
+                        "Enter new name:",
+                        "Rename Session",
+                        Messages.getQuestionIcon(),
+                        selected.getName(),
+                        null);
+                if (newName != null && !newName.trim().isEmpty()) {
+                    selected.setName(newName.trim());
+                    updateSessionList();
+                }
+            }
+        });
+
+        deleteSessionButton.addActionListener(e -> {
+            ChatSession selected = sessionList.getSelectedValue();
+            if (selected != null) {
+                int result = Messages.showYesNoDialog(
+                        MainPanel,
+                        "Are you sure you want to delete this session?",
+                        "Delete Session",
+                        Messages.getQuestionIcon());
+                if (result == Messages.YES) {
+                    sessionManager.removeSession(selected.getId());
+                    updateSessionList();
+                }
+            }
+        });
+
+        sessionList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                ChatSession selected = sessionList.getSelectedValue();
+                if (selected != null) {
+                    sessionManager.setActiveSession(selected);
+                    updateChatDisplay();
+                }
+            }
+        });
+
+        updateSessionList();
+    }
+
+    private void updateSessionList() {
+        sessionListModel.clear();
+        for (ChatSession session : sessionManager.getSessions()) {
+            sessionListModel.addElement(session);
+        }
+        if (sessionManager.getActiveSession() != null) {
+            sessionList.setSelectedValue(sessionManager.getActiveSession(), true);
+        }
+    }
+
+    private void setupChatUI() {
                 Mainbody.removeAll();
                 Mainbody.setLayout(new BorderLayout());
 
@@ -90,6 +190,9 @@ public class MainLayer {
 
                 JPanel outerPanel = new JPanel(new BorderLayout());
                 outerPanel.add(chatPanel, BorderLayout.NORTH);
+
+                // Add session panel to the top
+                Mainbody.add(sessionPanel, BorderLayout.NORTH);
 
                 // put chatpanel to a scrollable pane
                 JBScrollPane chatScrollPane = new JBScrollPane(outerPanel);
@@ -105,20 +208,18 @@ public class MainLayer {
                 buttonPanel.setLayout(new BorderLayout());
                 ComboBox<String> modelSelector = new ComboBox<>(new String[]{"none"}); // Default models
                 modelSelector.setSelectedIndex(0);
-                //get list of models available from OllamaService.getModels()
+                // Get list of models
                 CompletableFuture<String[]> modelsFuture = OllamaService.getModels();
                 modelsFuture.thenAccept(response -> {
-                    // Parse the response and return an array of model names
+
                     String[] models = response;
                     for (int i = 0; i < models.length; i++) {
-                        models[i] = models[i].trim(); // Clean up whitespace
+                        models[i] = models[i].trim();
                     }
                     modelSelector.setModel(new DefaultComboBoxModel<>(models));
                 }).exceptionally(ex -> {
-                    // Handle errors
-                    SwingUtilities.invokeLater(() -> {
-                        System.out.println("Error fetching models: " + ex.getMessage());
-                    });
+
+                    System.out.println("Error fetching models: " + ex.getMessage());
                     return null;
                 });
 
@@ -126,20 +227,18 @@ public class MainLayer {
 
 
 
-                // Status text to show when processing
+                // Status text
                 JLabel statusLabel = new JLabel("");
                 statusLabel.setForeground(Color.GRAY);
 
-                // button for adding reference
+                // Reference button
                 JButton addReferenceButton = new JButton();
                 addReferenceButton.setIcon(AllIcons.General.Add);
 
+                JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+                leftPanel.add(addReferenceButton);
+                buttonPanel.add(leftPanel, BorderLayout.WEST);
 
-                JPanel leftpanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-                leftpanel.add (addReferenceButton);
-
-                buttonPanel.add(leftpanel, BorderLayout.WEST);
-                // Add file chooser for references
                 addReferenceButton.addActionListener(e1 -> {
                     JFileChooser fileChooser = new JFileChooser();
                     int result = fileChooser.showOpenDialog(MainPanel);
@@ -149,7 +248,7 @@ public class MainLayer {
                     }
                 });
 
-                // create button for sending prompt
+                // Send button
                 JButton sendButton = new JButton();
                 sendButton.setIcon(AllIcons.Debugger.PromptInput);
 
@@ -159,22 +258,16 @@ public class MainLayer {
                 rightPanel.add(sendButton);
                 buttonPanel.add(rightPanel, BorderLayout.EAST);
 
-                // actionlistener for sendbutton
-                sendButton.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        String userInput = inputField.getText();
-                        if (!userInput.isEmpty()) {
-                            // Create composite prompt with reference if selected
-                            String fullPrompt = userInput;
-                            if (selectedReferenceFile != null) {
-                                fullPrompt = "Reference file: " + selectedReferenceFile.getName() + "\n\n" + userInput;
-                                // Note: In a real implementation, you'd need to read the file content
-                                // and pass it to the LLM along with the prompt
-                            }
+                sendButton.addActionListener(e -> {
+                    String userInput = inputField.getText();
+                    if (!userInput.isEmpty()) {
+                        String fullPrompt = userInput;
+                        if (selectedReferenceFile != null) {
+                            fullPrompt = "Reference file: " + selectedReferenceFile.getName() + "\n\n" + userInput;
+                        }
 
-                            // create the text area for the inputed prompt
-                            JTextArea inputArea = new JTextArea("Userinput: " + userInput);
+                            // Create message areas
+                            JTextArea inputArea = new JTextArea("User: " + userInput);
                             inputArea.setEditable(false);
                             inputArea.setLineWrap(true);
                             inputArea.setWrapStyleWord(true);
@@ -182,57 +275,50 @@ public class MainLayer {
                             inputArea.setMargin(new Insets(0, 0, 25, 25));
                             inputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // 设置边框为空，确保内边距生效
 
-                            // create placeholder text area for the answer
                             JTextArea answerArea = new JTextArea("Processing...");
                             answerArea.setEditable(false);
                             answerArea.setLineWrap(true);
                             answerArea.setBackground(new Color(60, 63, 65));
                             answerArea.setWrapStyleWord(true);
                             answerArea.setMargin(new Insets(0, 0, 25, 25));
-                            answerArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // 设置边框为空，确保内边距生效
-
-
+                            answerArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
                             chatPanel.add(inputArea);
                             chatPanel.add(answerArea);
-                            // Update UI to show we're processing
+                            // Update UI
                             sendButton.setEnabled(false);
                             statusLabel.setText("Generating response...");
 
+                            // Add message to session
+                            ChatSession activeSession = sessionManager.getActiveSession();
+                            activeSession.addMessage(userInput, true);
 
-                            // Call Ollama API asynchronously
+                            // Call Ollama API
                             String selectedModel = (String) modelSelector.getSelectedItem();
-                            CompletableFuture<String> futureResponse = OllamaService.generateResponse(selectedModel, fullPrompt);
+                            CompletableFuture<String> futureResponse = OllamaService.generateResponse(
+                                    selectedModel,
+                                    fullPrompt,
+                                    activeSession
+                            );
 
-                            // Handle the response when it arrives
                             futureResponse.thenAccept(response -> {
-                                // Update UI on EDT
                                 SwingUtilities.invokeLater(() -> {
                                     answerArea.setText(response);
+                                    activeSession.addMessage(response, false);
 
-                                    // Calculate a reasonable height based on content
-
-
-
-                                    // Re-enable the send button
                                     sendButton.setEnabled(true);
                                     statusLabel.setText("");
-
-                                    // Reset reference file
                                     selectedReferenceFile = null;
 
-                                    // refresh chatPanel
                                     chatPanel.revalidate();
                                     chatPanel.repaint();
 
-                                    // scroll to see the latest message
                                     SwingUtilities.invokeLater(() -> {
                                         JScrollBar verticalBar = chatScrollPane.getVerticalScrollBar();
                                         verticalBar.setValue(verticalBar.getMaximum());
                                     });
                                 });
                             }).exceptionally(ex -> {
-                                // Handle errors
                                 SwingUtilities.invokeLater(() -> {
                                     answerArea.setText("Error: " + ex.getMessage());
                                     sendButton.setEnabled(true);
@@ -241,30 +327,23 @@ public class MainLayer {
                                 return null;
                             });
 
-
-                            // clear the input field
                             inputField.setText("");
                         }
-                    }
-                });
+                    });
 
                 bottomPanel.add(inputField, BorderLayout.NORTH);
                 bottomPanel.add(buttonPanel, BorderLayout.SOUTH);
                 Mainbody.add(chatScrollPane, BorderLayout.CENTER);
                 Mainbody.add(bottomPanel, BorderLayout.SOUTH);
 
-                // refresh Mainbody
                 Mainbody.revalidate();
                 Mainbody.repaint();
             }
-        });
 
-        // Add functionality to the disagree button
-        disagreeButton.addActionListener(e -> {
-            // Similar to agree button but set a flag to disable data collection
-            agreeButton.doClick(); // Reuse the UI setup code
-            // In a real app, you would set a preference to disable data collection
-        });
+    private void updateChatDisplay() {
+        // This method would update the chat display when switching sessions
+        // For now, we'll just refresh the entire chat UI
+        setupChatUI();
     }
 
     public JPanel getMainPanel() {
@@ -274,7 +353,5 @@ public class MainLayer {
     private void createUIComponents() {
         MainPanel = new JPanel();
         MainPanel.setLayout(new BorderLayout());
-        JButton button = new JButton("Click me");
-        MainPanel.add(button);
     }
 }
