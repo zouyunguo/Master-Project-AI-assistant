@@ -183,7 +183,7 @@ public class MainLayer {
                             inputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // 设置边框为空，确保内边距生效
 
                             // create placeholder text area for the answer
-                            JTextArea answerArea = new JTextArea("Processing...");
+                            JTextArea answerArea = new JTextArea();
                             answerArea.setEditable(false);
                             answerArea.setLineWrap(true);
                             answerArea.setBackground(new Color(60, 63, 65));
@@ -202,13 +202,10 @@ public class MainLayer {
 
                             // Call Ollama API asynchronously
                             String selectedModel = (String) modelSelector.getSelectedItem();
-                            CompletableFuture<String> futureResponse = OllamaService.generateResponse(selectedModel, fullPrompt);
-
-                            // Handle the response when it arrives
-                            futureResponse.thenAccept(response -> {
+                            OllamaService.generateResponse(selectedModel, fullPrompt,responseLine->{
                                 // Update UI on EDT
                                 SwingUtilities.invokeLater(() -> {
-                                    answerArea.setText(response);
+                                    answerArea.append(responseLine);
 
                                     // Calculate a reasonable height based on content
 

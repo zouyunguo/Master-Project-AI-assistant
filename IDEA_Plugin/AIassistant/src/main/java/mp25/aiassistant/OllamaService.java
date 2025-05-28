@@ -1,5 +1,6 @@
 package mp25.aiassistant;
 
+import com.intellij.util.Consumer;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -22,8 +23,8 @@ public class OllamaService {
      * @param prompt The user's prompt
      * @return CompletableFuture with the response string
      */
-    public static CompletableFuture<String> generateResponse(String model, String prompt) {
-        return CompletableFuture.supplyAsync(() -> {
+    public static CompletableFuture<Void> generateResponse(String model, String prompt, Consumer<String> onResponse) {
+        return CompletableFuture.runAsync(() -> {
             try {
                 URL url = new URL(BASE_URL+"api/generate");
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -35,7 +36,7 @@ public class OllamaService {
                 JSONObject requestBody = new JSONObject();
                 requestBody.put("model", model);
                 requestBody.put("prompt", prompt);
-                requestBody.put("stream", false);  // Get complete response at once
+                requestBody.put("stream", true);  // Get complete response at once
 
                 // Send request
                 try (OutputStream os = connection.getOutputStream()) {
@@ -51,19 +52,24 @@ public class OllamaService {
                         StringBuilder response = new StringBuilder();
                         String responseLine;
                         while ((responseLine = br.readLine()) != null) {
-                            response.append(responseLine).append("\r");
+                            JSONObject jsonResponse = new JSONObject(responseLine.toString());
+
+                            onResponse.accept(jsonResponse.getString("response"));
+                            //response.append(responseLine).append("\r");
                         }
 
                         // Parse JSON response
-                        JSONObject jsonResponse = new JSONObject(response.toString());
-                        return jsonResponse.getString("response");
+
                     }
                 } else {
-                    return "Error: HTTP " + responseCode;
+                   // return "Error: HTTP " + responseCode;
+                    throw new IOException("HTTP error code: " + responseCode);
                 }
             } catch (IOException e) {
+               /* e.printStackTrace();
+                return "Error connecting to Ollama: " + e.getMessage();*/
                 e.printStackTrace();
-                return "Error connecting to Ollama: " + e.getMessage();
+                onResponse.accept("Error: " + e.getMessage());
             }
         });
     }
