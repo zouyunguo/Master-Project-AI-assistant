@@ -179,170 +179,190 @@ public class MainLayer {
     }
 
     private void setupChatUI() {
-                Mainbody.removeAll();
-                Mainbody.setLayout(new BorderLayout());
+        Mainbody.removeAll();
+        Mainbody.setLayout(new BorderLayout());
 
-                // Create the panel for the chats
-                JPanel chatPanel = new JPanel();
-                chatPanel.setLayout(new BoxLayout(chatPanel, BoxLayout.Y_AXIS));
-                chatPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-                chatPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        // Create the panel for the chats
+        JPanel chatPanel = createChatPanel();
+        JPanel outerPanel = new JPanel(new BorderLayout());
+        outerPanel.add(chatPanel, BorderLayout.NORTH);
 
-                JPanel outerPanel = new JPanel(new BorderLayout());
-                outerPanel.add(chatPanel, BorderLayout.NORTH);
+        // Add session panel to the top
+        Mainbody.add(sessionPanel, BorderLayout.NORTH);
 
-                // Add session panel to the top
-                Mainbody.add(sessionPanel, BorderLayout.NORTH);
+        // put chatpanel to a scrollable pane
+        JBScrollPane chatScrollPane = new JBScrollPane(outerPanel);
+        chatScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        chatScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
-                // put chatpanel to a scrollable pane
-                JBScrollPane chatScrollPane = new JBScrollPane(outerPanel);
-                chatScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-                chatScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        setupInputPanel(chatPanel, chatScrollPane);
 
-                // prompt input field
-                JTextField inputField = new JTextField();
-                JPanel bottomPanel = new JPanel();
-                bottomPanel.setLayout(new BorderLayout());
+        Mainbody.add(chatScrollPane, BorderLayout.CENTER);
+        Mainbody.revalidate();
+        Mainbody.repaint();
+    }
 
-                JPanel buttonPanel = new JPanel();
-                buttonPanel.setLayout(new BorderLayout());
-                ComboBox<String> modelSelector = new ComboBox<>(new String[]{"none"}); // Default models
-                modelSelector.setSelectedIndex(0);
-                // Get list of models
-                CompletableFuture<String[]> modelsFuture = OllamaService.getModels();
-                modelsFuture.thenAccept(response -> {
+    private JPanel createChatPanel() {
+        JPanel chatPanel = new JPanel();
+        chatPanel.setLayout(new BoxLayout(chatPanel, BoxLayout.Y_AXIS));
+        chatPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        chatPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
 
-                    String[] models = response;
-                    for (int i = 0; i < models.length; i++) {
-                        models[i] = models[i].trim();
-                    }
-                    modelSelector.setModel(new DefaultComboBoxModel<>(models));
-                }).exceptionally(ex -> {
+        // Load existing messages if there are any
+        ChatSession currentSession = sessionManager.getActiveSession();
+        if (currentSession != null) {
+            for (ChatSession.Message message : currentSession.getMessages()) {
+                JTextArea messageArea = new JTextArea(
+                        (message.isUser() ? "User: " : "Assistant: ") + message.getContent()
+                );
+                messageArea.setEditable(false);
+                messageArea.setLineWrap(true);
+                messageArea.setWrapStyleWord(true);
+                messageArea.setBackground(message.isUser() ? new Color(43, 45, 48) : new Color(60, 63, 65));
+                messageArea.setMargin(new Insets(0, 0, 25, 25));
+                messageArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                chatPanel.add(messageArea);
+            }
+        }
+        return chatPanel;
+    }
 
-                    System.out.println("Error fetching models: " + ex.getMessage());
-                    return null;
-                });
+    private void setupInputPanel(JPanel chatPanel, JBScrollPane chatScrollPane) {
+        JTextField inputField = new JTextField();
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BorderLayout());
 
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BorderLayout());
+        ComboBox<String> modelSelector = new ComboBox<>(new String[]{"none"}); // Default models
+        modelSelector.setSelectedIndex(0);
 
+        // Get list of models
+        CompletableFuture<String[]> modelsFuture = OllamaService.getModels();
+        modelsFuture.thenAccept(response -> {
+            String[] models = response;
+            for (int i = 0; i < models.length; i++) {
+                models[i] = models[i].trim();
+            }
+            modelSelector.setModel(new DefaultComboBoxModel<>(models));
+        }).exceptionally(ex -> {
+            System.out.println("Error fetching models: " + ex.getMessage());
+            return null;
+        });
 
+        // Status text
+        JLabel statusLabel = new JLabel("");
+        statusLabel.setForeground(Color.GRAY);
 
+        // Reference button
+        JButton addReferenceButton = new JButton();
+        addReferenceButton.setIcon(AllIcons.General.Add);
 
-                // Status text
-                JLabel statusLabel = new JLabel("");
-                statusLabel.setForeground(Color.GRAY);
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        leftPanel.add(addReferenceButton);
+        buttonPanel.add(leftPanel, BorderLayout.WEST);
 
-                // Reference button
-                JButton addReferenceButton = new JButton();
-                addReferenceButton.setIcon(AllIcons.General.Add);
+        addReferenceButton.addActionListener(e1 -> {
+            JFileChooser fileChooser = new JFileChooser();
+            int result = fileChooser.showOpenDialog(MainPanel);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                selectedReferenceFile = fileChooser.getSelectedFile();
+                statusLabel.setText("Reference added: " + selectedReferenceFile.getName());
+            }
+        });
 
-                JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-                leftPanel.add(addReferenceButton);
-                buttonPanel.add(leftPanel, BorderLayout.WEST);
+        // Send button
+        JButton sendButton = new JButton();
+        sendButton.setIcon(AllIcons.Debugger.PromptInput);
 
-                addReferenceButton.addActionListener(e1 -> {
-                    JFileChooser fileChooser = new JFileChooser();
-                    int result = fileChooser.showOpenDialog(MainPanel);
-                    if (result == JFileChooser.APPROVE_OPTION) {
-                        selectedReferenceFile = fileChooser.getSelectedFile();
-                        statusLabel.setText("Reference added: " + selectedReferenceFile.getName());
-                    }
-                });
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        rightPanel.add(statusLabel);
+        rightPanel.add(modelSelector);
+        rightPanel.add(sendButton);
+        buttonPanel.add(rightPanel, BorderLayout.EAST);
 
-                // Send button
-                JButton sendButton = new JButton();
-                sendButton.setIcon(AllIcons.Debugger.PromptInput);
+        sendButton.addActionListener(e -> {
+            String userInput = inputField.getText();
+            if (!userInput.isEmpty()) {
+                String fullPrompt = userInput;
+                if (selectedReferenceFile != null) {
+                    fullPrompt = "Reference file: " + selectedReferenceFile.getName() + "\n\n" + userInput;
+                }
 
-                JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-                rightPanel.add(statusLabel);
-                rightPanel.add(modelSelector);
-                rightPanel.add(sendButton);
-                buttonPanel.add(rightPanel, BorderLayout.EAST);
+                // Create message areas
+                JTextArea inputArea = new JTextArea("User: " + userInput);
+                inputArea.setEditable(false);
+                inputArea.setLineWrap(true);
+                inputArea.setWrapStyleWord(true);
+                inputArea.setBackground(new Color(43, 45, 48));
+                inputArea.setMargin(new Insets(0, 0, 25, 25));
+                inputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-                sendButton.addActionListener(e -> {
-                    String userInput = inputField.getText();
-                    if (!userInput.isEmpty()) {
-                        String fullPrompt = userInput;
-                        if (selectedReferenceFile != null) {
-                            fullPrompt = "Reference file: " + selectedReferenceFile.getName() + "\n\n" + userInput;
-                        }
+                JTextArea answerArea = new JTextArea("Processing...");
+                answerArea.setEditable(false);
+                answerArea.setLineWrap(true);
+                answerArea.setBackground(new Color(60, 63, 65));
+                answerArea.setWrapStyleWord(true);
+                answerArea.setMargin(new Insets(0, 0, 25, 25));
+                answerArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-                            // Create message areas
-                            JTextArea inputArea = new JTextArea("User: " + userInput);
-                            inputArea.setEditable(false);
-                            inputArea.setLineWrap(true);
-                            inputArea.setWrapStyleWord(true);
-                            inputArea.setBackground(new Color(43, 45, 48));
-                            inputArea.setMargin(new Insets(0, 0, 25, 25));
-                            inputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // 设置边框为空，确保内边距生效
+                chatPanel.add(inputArea);
+                chatPanel.add(answerArea);
 
-                            JTextArea answerArea = new JTextArea("Processing...");
-                            answerArea.setEditable(false);
-                            answerArea.setLineWrap(true);
-                            answerArea.setBackground(new Color(60, 63, 65));
-                            answerArea.setWrapStyleWord(true);
-                            answerArea.setMargin(new Insets(0, 0, 25, 25));
-                            answerArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                // Update UI
+                sendButton.setEnabled(false);
+                statusLabel.setText("Generating response...");
 
-                            chatPanel.add(inputArea);
-                            chatPanel.add(answerArea);
-                            // Update UI
-                            sendButton.setEnabled(false);
-                            statusLabel.setText("Generating response...");
+                // Add message to session
+                ChatSession currentSession = sessionManager.getActiveSession();
+                if (currentSession != null) {
+                    currentSession.addMessage(userInput, true);
 
-                            // Add message to session
-                            ChatSession activeSession = sessionManager.getActiveSession();
-                            activeSession.addMessage(userInput, true);
+                    // Call Ollama API
+                    String selectedModel = (String) modelSelector.getSelectedItem();
+                    CompletableFuture<String> futureResponse = OllamaService.generateResponse(
+                            selectedModel,
+                            fullPrompt,
+                            currentSession
+                    );
 
-                            // Call Ollama API
-                            String selectedModel = (String) modelSelector.getSelectedItem();
-                            CompletableFuture<String> futureResponse = OllamaService.generateResponse(
-                                    selectedModel,
-                                    fullPrompt,
-                                    activeSession
-                            );
+                    futureResponse.thenAccept(aiResponse -> {
+                        SwingUtilities.invokeLater(() -> {
+                            answerArea.setText(aiResponse);
+                            currentSession.addMessage(aiResponse, false);
 
-                            futureResponse.thenAccept(response -> {
-                                SwingUtilities.invokeLater(() -> {
-                                    answerArea.setText(response);
-                                    activeSession.addMessage(response, false);
+                            sendButton.setEnabled(true);
+                            statusLabel.setText("");
+                            selectedReferenceFile = null;
 
-                                    sendButton.setEnabled(true);
-                                    statusLabel.setText("");
-                                    selectedReferenceFile = null;
+                            chatPanel.revalidate();
+                            chatPanel.repaint();
 
-                                    chatPanel.revalidate();
-                                    chatPanel.repaint();
-
-                                    SwingUtilities.invokeLater(() -> {
-                                        JScrollBar verticalBar = chatScrollPane.getVerticalScrollBar();
-                                        verticalBar.setValue(verticalBar.getMaximum());
-                                    });
-                                });
-                            }).exceptionally(ex -> {
-                                SwingUtilities.invokeLater(() -> {
-                                    answerArea.setText("Error: " + ex.getMessage());
-                                    sendButton.setEnabled(true);
-                                    statusLabel.setText("Error occurred");
-                                });
-                                return null;
+                            SwingUtilities.invokeLater(() -> {
+                                JScrollBar verticalBar = chatScrollPane.getVerticalScrollBar();
+                                verticalBar.setValue(verticalBar.getMaximum());
                             });
-
-                            inputField.setText("");
-                        }
+                        });
+                    }).exceptionally(ex -> {
+                        SwingUtilities.invokeLater(() -> {
+                            answerArea.setText("Error: " + ex.getMessage());
+                            sendButton.setEnabled(true);
+                            statusLabel.setText("Error occurred");
+                        });
+                        return null;
                     });
 
-                bottomPanel.add(inputField, BorderLayout.NORTH);
-                bottomPanel.add(buttonPanel, BorderLayout.SOUTH);
-                Mainbody.add(chatScrollPane, BorderLayout.CENTER);
-                Mainbody.add(bottomPanel, BorderLayout.SOUTH);
-
-                Mainbody.revalidate();
-                Mainbody.repaint();
+                    inputField.setText("");
+                }
             }
+        });
+
+        bottomPanel.add(inputField, BorderLayout.NORTH);
+        bottomPanel.add(buttonPanel, BorderLayout.SOUTH);
+        Mainbody.add(bottomPanel, BorderLayout.SOUTH);
+    }
 
     private void updateChatDisplay() {
-        // This method would update the chat display when switching sessions
-        // For now, we'll just refresh the entire chat UI
         setupChatUI();
     }
 
