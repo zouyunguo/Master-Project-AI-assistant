@@ -28,21 +28,31 @@ public class OllamaService {
     public static CompletableFuture<String> generateResponse(String model, String prompt, ChatSession session) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                URL url = new URL(BASE_URL + "api/generate");
+                URL url = new URL(BASE_URL + "api/chat");
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/json");
                 connection.setDoOutput(true);
 
-                // Build context from session messages
-                String context = session.getMessages().stream()
-                        .map(msg -> (msg.isUser() ? "User: " : "Assistant: ") + msg.getContent())
-                        .collect(Collectors.joining("\n"));
+                // 构造 messages 数组
+                JSONArray messages = new JSONArray();
+                session.getMessages().forEach(msg -> {
+                    JSONObject messageObj = new JSONObject();
+                    messageObj.put("role", msg.isUser() ? "user" : "assistant");
+                    messageObj.put("content", msg.getContent());
+                    messages.put(messageObj);
+                });
+
+                // 添加当前用户新消息
+                JSONObject currentUserMsg = new JSONObject();
+                currentUserMsg.put("role", "user");
+                currentUserMsg.put("content", prompt);
+                messages.put(currentUserMsg);
 
                 // Create request JSON with context
                 JSONObject requestBody = new JSONObject();
                 requestBody.put("model", model);
-                requestBody.put("prompt", context + "\nUser: " + prompt + "\nAssistant:");
+                requestBody.put("messages", messages);
                 requestBody.put("stream", false);
 
                 // Send request
@@ -59,12 +69,13 @@ public class OllamaService {
                         StringBuilder response = new StringBuilder();
                         String responseLine;
                         while ((responseLine = br.readLine()) != null) {
-                            response.append(responseLine).append("\r");
+                            response.append(responseLine);
                         }
 
                         // Parse JSON response
                         JSONObject jsonResponse = new JSONObject(response.toString());
-                        return jsonResponse.getString("response");
+                        JSONObject messageObj = jsonResponse.getJSONObject("message");
+                        return messageObj.getString("content");
                     }
                 } else {
                     return "Error: HTTP " + responseCode;
