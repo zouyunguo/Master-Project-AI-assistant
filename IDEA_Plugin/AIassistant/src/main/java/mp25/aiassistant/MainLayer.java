@@ -12,6 +12,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.Serializable;
 import java.util.concurrent.CompletableFuture;
 import com.intellij.icons.AllIcons;
 public class MainLayer {
@@ -102,11 +103,28 @@ public class MainLayer {
 
                 JPanel buttonPanel = new JPanel();
                 buttonPanel.setLayout(new BorderLayout());
+                ComboBox<String> modelSelector = new ComboBox<>(new String[]{"none"}); // Default models
+                modelSelector.setSelectedIndex(0);
+                //get list of models available from OllamaService.getModels()
+                CompletableFuture<String[]> modelsFuture = OllamaService.getModels();
+                modelsFuture.thenAccept(response -> {
+                    // Parse the response and return an array of model names
+                    String[] models = response;
+                    for (int i = 0; i < models.length; i++) {
+                        models[i] = models[i].trim(); // Clean up whitespace
+                    }
+                    modelSelector.setModel(new DefaultComboBoxModel<>(models));
+                }).exceptionally(ex -> {
+                    // Handle errors
+                    SwingUtilities.invokeLater(() -> {
+                        System.out.println("Error fetching models: " + ex.getMessage());
+                    });
+                    return null;
+                });
 
-                // Models available in Ollama - update this list as needed
-                String[] models = {"llama2", "codellama", "mistral", "gemma"};
-                ComboBox<String> modelSelector = new ComboBox<>(models);
-                modelSelector.setSelectedIndex(0); // Default to first model
+
+
+
 
                 // Status text to show when processing
                 JLabel statusLabel = new JLabel("");
@@ -161,7 +179,6 @@ public class MainLayer {
                             inputArea.setLineWrap(true);
                             inputArea.setWrapStyleWord(true);
                             inputArea.setBackground(new Color(43, 45, 48));
-                            inputArea.setPreferredSize(new Dimension(350, Math.max(200, 40 * userInput.length() / 40)));
                             inputArea.setMargin(new Insets(0, 0, 25, 25));
                             inputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // 设置边框为空，确保内边距生效
 
@@ -194,9 +211,8 @@ public class MainLayer {
                                     answerArea.setText(response);
 
                                     // Calculate a reasonable height based on content
-                                    int lineCount = response.split("\n").length;
-                                    int preferredHeight =  Math.max(200,lineCount * 20);
-                                    answerArea.setPreferredSize(new Dimension(350, preferredHeight));
+
+
 
                                     // Re-enable the send button
                                     sendButton.setEnabled(true);
