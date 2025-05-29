@@ -212,13 +212,19 @@ public class MainLayer {
         ChatSession currentSession = sessionManager.getActiveSession();
         if (currentSession != null) {
             for (ChatSession.Message message : currentSession.getMessages()) {
-                JTextArea messageArea = new JTextArea(
-                        (message.isUser() ? "User: " : "Assistant: ") + message.getContent()
-                );
+                JTextArea messageArea = new JTextArea();
                 messageArea.setEditable(false);
                 messageArea.setLineWrap(true);
                 messageArea.setWrapStyleWord(true);
-                messageArea.setBackground(message.isUser() ? new Color(43, 45, 48) : new Color(60, 63, 65));
+                
+                if (message.isUser()) {
+                    messageArea.setText("User: " + message.getContent());
+                    messageArea.setBackground(new Color(43, 45, 48));
+                } else {
+                    messageArea.setText("Assistant: " + message.getContent());
+                    messageArea.setBackground(new Color(60, 63, 65));
+                }
+                
                 messageArea.setMargin(new Insets(0, 0, 25, 25));
                 messageArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
                 chatPanel.add(messageArea);
@@ -298,7 +304,7 @@ public class MainLayer {
                 inputArea.setMargin(new Insets(0, 0, 25, 25));
                 inputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-                JTextArea answerArea = new JTextArea();
+                JTextArea answerArea = new JTextArea("Assistant: ");
                 answerArea.setEditable(false);
                 answerArea.setLineWrap(true);
                 answerArea.setBackground(new Color(60, 63, 65));
@@ -320,37 +326,41 @@ public class MainLayer {
 
                     // Call Ollama API
                     String selectedModel = (String) modelSelector.getSelectedItem();
+                    StringBuilder responseBuilder = new StringBuilder();
+                    
                     OllamaService.chatResponse(
                             selectedModel,
                             fullPrompt,
                             currentSession,
                             aiResponse -> {
+                                SwingUtilities.invokeLater(() -> {
+                                    responseBuilder.append(aiResponse);
+                                    answerArea.setText("Assistant: " + responseBuilder.toString());
+                                    
+                                    chatPanel.revalidate();
+                                    chatPanel.repaint();
 
-//                    futureResponse.thenAccept(aiResponse -> {
-                        SwingUtilities.invokeLater(() -> {
-                            answerArea.append(aiResponse);
-                            currentSession.addMessage(aiResponse, false);
-
-                            sendButton.setEnabled(true);
-                            statusLabel.setText("");
-                            selectedReferenceFile = null;
-
-                            chatPanel.revalidate();
-                            chatPanel.repaint();
-
-                            SwingUtilities.invokeLater(() -> {
-                                JScrollBar verticalBar = chatScrollPane.getVerticalScrollBar();
-                                verticalBar.setValue(verticalBar.getMaximum());
+                                    SwingUtilities.invokeLater(() -> {
+                                        JScrollBar verticalBar = chatScrollPane.getVerticalScrollBar();
+                                        verticalBar.setValue(verticalBar.getMaximum());
+                                    });
+                                });
+                            }).thenRun(() -> {
+                                SwingUtilities.invokeLater(() -> {
+                                    // Only store the complete response once
+                                    currentSession.addMessage(responseBuilder.toString(), false);
+                                    sendButton.setEnabled(true);
+                                    statusLabel.setText("");
+                                    selectedReferenceFile = null;
+                                });
+                            }).exceptionally(ex -> {
+                                SwingUtilities.invokeLater(() -> {
+                                    answerArea.setText("Assistant: Error: " + ex.getMessage());
+                                    sendButton.setEnabled(true);
+                                    statusLabel.setText("Error occurred");
+                                });
+                                return null;
                             });
-                        });
-                    }).exceptionally(ex -> {
-                        SwingUtilities.invokeLater(() -> {
-                            answerArea.setText("Error: " + ex.getMessage());
-                            sendButton.setEnabled(true);
-                            statusLabel.setText("Error occurred");
-                        });
-                        return null;
-                    });
 
                     inputField.setText("");
                 }

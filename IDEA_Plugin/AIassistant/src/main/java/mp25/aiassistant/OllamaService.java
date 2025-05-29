@@ -67,29 +67,19 @@ public class OllamaService {
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     try (BufferedReader br = new BufferedReader(
                             new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-                        StringBuilder response = new StringBuilder();
                         String responseLine;
                         while ((responseLine = br.readLine()) != null) {
-//                            response.append(responseLine);
-                            JSONObject jsonResponse = new JSONObject(responseLine.toString());
+                            JSONObject jsonResponse = new JSONObject(responseLine);
                             JSONObject messageObj = jsonResponse.getJSONObject("message");
-                            onResponse.accept(messageObj.getString("content"));
+                            String content = messageObj.getString("content");
+                            onResponse.accept(content);
                             System.out.println("Response Line: " + responseLine);
                         }
-
-//                        // Parse JSON response
-//                        JSONObject jsonResponse = new JSONObject(response.toString());
-//                        JSONObject messageObj = jsonResponse.getJSONObject("message");
-//                        onResponse.accept(messageObj.getString("content"));
-
-//                        return messageObj.getString("content");
                     }
                 } else {
                     throw new IOException("HTTP error code: " + responseCode);
                 }
             } catch (IOException e) {
-                 /* e.printStackTrace();
-                return "Error connecting to Ollama: " + e.getMessage();*/
                 e.printStackTrace();
                 onResponse.accept("Error: " + e.getMessage());
             }
