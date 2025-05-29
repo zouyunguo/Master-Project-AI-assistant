@@ -298,7 +298,7 @@ public class MainLayer {
                 inputArea.setMargin(new Insets(0, 0, 25, 25));
                 inputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-                JTextArea answerArea = new JTextArea("Processing...");
+                JTextArea answerArea = new JTextArea();
                 answerArea.setEditable(false);
                 answerArea.setLineWrap(true);
                 answerArea.setBackground(new Color(60, 63, 65));
@@ -320,15 +320,15 @@ public class MainLayer {
 
                     // Call Ollama API
                     String selectedModel = (String) modelSelector.getSelectedItem();
-                    CompletableFuture<String> futureResponse = OllamaService.generateResponse(
+                    OllamaService.chatResponse(
                             selectedModel,
                             fullPrompt,
-                            currentSession
-                    );
+                            currentSession,
+                            aiResponse -> {
 
-                    futureResponse.thenAccept(aiResponse -> {
+//                    futureResponse.thenAccept(aiResponse -> {
                         SwingUtilities.invokeLater(() -> {
-                            answerArea.setText(aiResponse);
+                            answerArea.append(aiResponse);
                             currentSession.addMessage(aiResponse, false);
 
                             sendButton.setEnabled(true);

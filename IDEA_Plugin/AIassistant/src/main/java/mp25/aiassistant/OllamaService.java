@@ -1,5 +1,6 @@
 package mp25.aiassistant;
 
+import java.util.function.Consumer;
 import mp25.aiassistant.chat.ChatSession;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -25,8 +26,8 @@ public class OllamaService {
      * @param session The chat session containing context
      * @return CompletableFuture with the response string
      */
-    public static CompletableFuture<String> generateResponse(String model, String prompt, ChatSession session) {
-        return CompletableFuture.supplyAsync(() -> {
+    public static CompletableFuture<Void> chatResponse(String model, String prompt, ChatSession session, Consumer<String> onResponse) {
+        return CompletableFuture.runAsync(() -> {
             try {
                 URL url = new URL(BASE_URL + "api/chat");
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -53,7 +54,7 @@ public class OllamaService {
                 JSONObject requestBody = new JSONObject();
                 requestBody.put("model", model);
                 requestBody.put("messages", messages);
-                requestBody.put("stream", false);
+                requestBody.put("stream", true);
 
                 // Send request
                 try (OutputStream os = connection.getOutputStream()) {
@@ -69,20 +70,86 @@ public class OllamaService {
                         StringBuilder response = new StringBuilder();
                         String responseLine;
                         while ((responseLine = br.readLine()) != null) {
-                            response.append(responseLine);
+//                            response.append(responseLine);
+                            JSONObject jsonResponse = new JSONObject(responseLine.toString());
+                            JSONObject messageObj = jsonResponse.getJSONObject("message");
+                            onResponse.accept(messageObj.getString("content"));
+                            System.out.println("Response Line: " + responseLine);
+                        }
+
+//                        // Parse JSON response
+//                        JSONObject jsonResponse = new JSONObject(response.toString());
+//                        JSONObject messageObj = jsonResponse.getJSONObject("message");
+//                        onResponse.accept(messageObj.getString("content"));
+
+//                        return messageObj.getString("content");
+                    }
+                } else {
+                    throw new IOException("HTTP error code: " + responseCode);
+                }
+            } catch (IOException e) {
+                 /* e.printStackTrace();
+                return "Error connecting to Ollama: " + e.getMessage();*/
+                e.printStackTrace();
+                onResponse.accept("Error: " + e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Send prompt to the Ollama API asynchronously
+     *
+     * @param model The model name to use
+     * @param prompt The user's prompt
+     * @return CompletableFuture with the response string
+     */
+    public static CompletableFuture<Void> generateResponse(String model, String prompt, Consumer<String> onResponse) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                URL url = new URL(BASE_URL+"api/generate");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setDoOutput(true);
+
+                // Create request JSON
+                JSONObject requestBody = new JSONObject();
+                requestBody.put("model", model);
+                requestBody.put("prompt", prompt);
+                requestBody.put("stream", true);  // Get complete response at once
+
+                // Send request
+                try (OutputStream os = connection.getOutputStream()) {
+                    byte[] input = requestBody.toString().getBytes(StandardCharsets.UTF_8);
+                    os.write(input, 0, input.length);
+                }
+
+                // Read response
+                int responseCode = connection.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    try (BufferedReader br = new BufferedReader(
+                            new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+                        StringBuilder response = new StringBuilder();
+                        String responseLine;
+                        while ((responseLine = br.readLine()) != null) {
+                            JSONObject jsonResponse = new JSONObject(responseLine.toString());
+
+                            onResponse.accept(jsonResponse.getString("response"));
+                            //response.append(responseLine).append("\r");
                         }
 
                         // Parse JSON response
-                        JSONObject jsonResponse = new JSONObject(response.toString());
-                        JSONObject messageObj = jsonResponse.getJSONObject("message");
-                        return messageObj.getString("content");
+
                     }
                 } else {
-                    return "Error: HTTP " + responseCode;
+                    // return "Error: HTTP " + responseCode;
+                    throw new IOException("HTTP error code: " + responseCode);
                 }
             } catch (IOException e) {
+               /* e.printStackTrace();
+                return "Error connecting to Ollama: " + e.getMessage();*/
                 e.printStackTrace();
-                return "Error connecting to Ollama: " + e.getMessage();
+                onResponse.accept("Error: " + e.getMessage());
             }
         });
     }
