@@ -73,7 +73,6 @@ public class OllamaService {
                             JSONObject messageObj = jsonResponse.getJSONObject("message");
                             String content = messageObj.getString("content");
                             onResponse.accept(content);
-                            System.out.println("Response Line: " + responseLine);
                         }
                     }
                 } else {

@@ -2,6 +2,7 @@ package mp25.aiassistant;
 
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
 import mp25.aiassistant.chat.ChatSession;
 import mp25.aiassistant.chat.SessionManager;
@@ -17,6 +18,8 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import com.intellij.icons.AllIcons;
+
+
 public class MainLayer {
     private JPanel MainPanel;
     private JButton agreeButton;
@@ -24,13 +27,13 @@ public class MainLayer {
     private JPanel Mainbody;
     private JTextPane PolicyText;
     private JPanel sessionPanel;
-    private JList<ChatSession> sessionList;
+    private JBList<ChatSession> sessionList;
     private JButton newSessionButton;
     private JButton renameSessionButton;
     private JButton deleteSessionButton;
     private final SessionManager sessionManager;
     private DefaultListModel<ChatSession> sessionListModel;
-
+    private ReferenceProcessor referenceProcessor;
     private String text = "To provide you with a better and more personalized experience,"
             + "we collect anonymized usage data, such as feature interactions frequencies,"
             + "performance metrics, and error reports."
@@ -42,8 +45,10 @@ public class MainLayer {
     private File selectedReferenceFile = null;
 
     public MainLayer() {
+        referenceProcessor = new ReferenceProcessor();
         sessionManager = new SessionManager();
         sessionListModel = new DefaultListModel<>();
+        sessionList= new JBList<>(sessionListModel);
         sessionList.setModel(sessionListModel);
         sessionList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
@@ -57,8 +62,9 @@ public class MainLayer {
             }
         });
 
+
         setupUI();
-        setupSessionControls();
+        //setupSessionControls();
     }
 
     private void setupUI() {
@@ -106,10 +112,15 @@ public class MainLayer {
             e.printStackTrace();
         }
         agreeButton.addActionListener(e -> setupChatUI());
+        agreeButton.addActionListener(e->setupSessionControls());
         disagreeButton.addActionListener(e -> setupChatUI());
+        disagreeButton.addActionListener(e -> setupSessionControls());
     }
 
     private void setupSessionControls() {
+        newSessionButton = new JButton("New Session");
+        renameSessionButton = new JButton("Rename Session");
+        deleteSessionButton = new JButton("Delete Session");
         newSessionButton.addActionListener(e -> {
             String name = Messages.showInputDialog(
                     MainPanel,
@@ -188,6 +199,11 @@ public class MainLayer {
         outerPanel.add(chatPanel, BorderLayout.NORTH);
 
         // Add session panel to the top
+        sessionPanel = new JPanel();
+        sessionPanel.add(sessionList);
+        sessionPanel.add(newSessionButton);
+        sessionPanel.add(renameSessionButton);
+        sessionPanel.add(deleteSessionButton);
         Mainbody.add(sessionPanel, BorderLayout.NORTH);
 
         // put chatpanel to a scrollable pane
@@ -268,11 +284,13 @@ public class MainLayer {
         leftPanel.add(addReferenceButton);
         buttonPanel.add(leftPanel, BorderLayout.WEST);
 
-        addReferenceButton.addActionListener(e1 -> {
+        addReferenceButton.addActionListener(action -> {
             JFileChooser fileChooser = new JFileChooser();
             int result = fileChooser.showOpenDialog(MainPanel);
             if (result == JFileChooser.APPROVE_OPTION) {
                 selectedReferenceFile = fileChooser.getSelectedFile();
+                referenceProcessor.addReferenceFile(selectedReferenceFile);
+
                 statusLabel.setText("Reference added: " + selectedReferenceFile.getName());
             }
         });
@@ -287,14 +305,19 @@ public class MainLayer {
         rightPanel.add(sendButton);
         buttonPanel.add(rightPanel, BorderLayout.EAST);
 
+        //callback function for sendButton
         sendButton.addActionListener(e -> {
             String userInput = inputField.getText();
             if (!userInput.isEmpty()) {
-                String fullPrompt = userInput;
-                if (selectedReferenceFile != null) {
-                    fullPrompt = "Reference file: " + selectedReferenceFile.getName() + "\n\n" + userInput;
-                }
+                String fullPrompt = "";
+                if (referenceProcessor.getReferenceFiles().size() >0) {
+                    fullPrompt = "Below is a list of files that is relevant for the context,"+ referenceProcessor.generateReferenceFilePrompt()+"\n Based on the context files above," +
+                            "generate the answer based on the following mission:" +userInput;
 
+                }else{
+                    fullPrompt = userInput;
+                }
+                System.out.println("Full Prompt: " + fullPrompt);
                 // Create message areas
                 JTextArea inputArea = new JTextArea("User: " + userInput);
                 inputArea.setEditable(false);
@@ -302,7 +325,7 @@ public class MainLayer {
                 inputArea.setWrapStyleWord(true);
                 inputArea.setBackground(new Color(43, 45, 48));
                 inputArea.setMargin(new Insets(0, 0, 25, 25));
-                inputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                inputArea.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));
 
                 JTextArea answerArea = new JTextArea("Assistant: ");
                 answerArea.setEditable(false);
@@ -310,7 +333,7 @@ public class MainLayer {
                 answerArea.setBackground(new Color(60, 63, 65));
                 answerArea.setWrapStyleWord(true);
                 answerArea.setMargin(new Insets(0, 0, 25, 25));
-                answerArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                answerArea.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));
 
                 chatPanel.add(inputArea);
                 chatPanel.add(answerArea);
