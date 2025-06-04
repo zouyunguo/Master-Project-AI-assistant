@@ -45,7 +45,7 @@ public class InlineChat extends AnAction {
         CompletableFuture<String[]> modelsFuture = OllamaService.getModels();
         modelsFuture.thenAccept(response -> {
             // Parse the response and return an array of model names
-           String[] models = response;
+            String[] models = response;
             for (int i = 0; i < models.length; i++) {
                 models[i] = models[i].trim(); // Clean up whitespace
             }
