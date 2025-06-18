@@ -84,12 +84,18 @@ public class InlineChat extends AnAction {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String userInput = inputField.getText();
+                String fullPrompt= "Please only output code, no other texts to explain your work, the input task is:" + userInput +".Return your code in a code block, which starts with ```LanguageName\\n and ends with ```\n";
                 if (!userInput.isEmpty()) {
                     // 禁用按钮以防止重复点击
                     sendButton.setEnabled(false);
                     String selectedModel = (String) modelSelector.getSelectedItem();
+                    boolean onThinkFinished = false;
                     // 调用 OllamaService.generateResponse
-                    OllamaService.generateResponse(selectedModel, userInput, responseLine -> {
+                    OllamaService.generateResponse(selectedModel, fullPrompt, responseLine -> {
+                        //对responseLine进行处理，去除以<thinking>和</thinking>标签包裹的思考内容
+                        System.out.println("Response: " + responseLine);
+                        String codeBlock = responseLine.replaceAll("(?s).*?```\\w+\\n(.*?)\\n```.*", "$1");
+
                         // 在事件调度线程中更新 UI
                         ApplicationManager.getApplication().invokeLater(() -> {
                             WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
@@ -99,8 +105,8 @@ public class InlineChat extends AnAction {
                                 int offset = caretModel.getOffset();
 
                                 // 在光标位置插入返回结果
-                                document.insertString(offset+Chatoffset, responseLine);
-                                Chatoffset+= responseLine.length();
+                                document.insertString(offset+Chatoffset, codeBlock);
+                                Chatoffset+= codeBlock.length();
                                 // 关闭弹出窗口
                                 popup.cancel();
 

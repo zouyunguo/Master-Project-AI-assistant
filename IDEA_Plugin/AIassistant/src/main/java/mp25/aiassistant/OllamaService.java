@@ -70,6 +70,7 @@ public class OllamaService {
                         String responseLine;
                         while ((responseLine = br.readLine()) != null) {
                             JSONObject jsonResponse = new JSONObject(responseLine);
+                           // System.out.println("Response: " + jsonResponse.toString(2));
                             JSONObject messageObj = jsonResponse.getJSONObject("message");
                             String content = messageObj.getString("content");
                             onResponse.accept(content);
@@ -100,12 +101,11 @@ public class OllamaService {
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/json");
                 connection.setDoOutput(true);
-
                 // Create request JSON
                 JSONObject requestBody = new JSONObject();
                 requestBody.put("model", model);
                 requestBody.put("prompt", prompt);
-                requestBody.put("stream", true);  // Get complete response at once
+                requestBody.put("stream", false);  // Get complete response at once
 
                 // Send request
                 try (OutputStream os = connection.getOutputStream()) {

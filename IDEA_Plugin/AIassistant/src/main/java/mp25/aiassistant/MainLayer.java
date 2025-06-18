@@ -33,7 +33,6 @@ public class MainLayer {
     private JButton deleteSessionButton;
     private final SessionManager sessionManager;
     private DefaultListModel<ChatSession> sessionListModel;
-    private ReferenceProcessor referenceProcessor;
     private String text = "To provide you with a better and more personalized experience,"
             + "we collect anonymized usage data, such as feature interactions frequencies,"
             + "performance metrics, and error reports."
@@ -45,7 +44,6 @@ public class MainLayer {
     private File selectedReferenceFile = null;
 
     public MainLayer() {
-        referenceProcessor = new ReferenceProcessor();
         sessionManager = new SessionManager();
         sessionListModel = new DefaultListModel<>();
         sessionList= new JBList<>(sessionListModel);
@@ -200,11 +198,14 @@ public class MainLayer {
 
         // Add session panel to the top
         sessionPanel = new JPanel();
-        sessionPanel.add(sessionList);
-        sessionPanel.add(newSessionButton);
-        sessionPanel.add(renameSessionButton);
-        sessionPanel.add(deleteSessionButton);
+        sessionPanel.add(sessionList,BorderLayout.WEST);
+        JPanel SessioncontrolPanel = new JPanel();
+        SessioncontrolPanel.add(newSessionButton);
+        SessioncontrolPanel.add(renameSessionButton);
+        SessioncontrolPanel.add(deleteSessionButton);
+        sessionPanel.add(SessioncontrolPanel,BorderLayout.EAST);
         Mainbody.add(sessionPanel, BorderLayout.NORTH);
+
 
         // put chatpanel to a scrollable pane
         JBScrollPane chatScrollPane = new JBScrollPane(outerPanel);
@@ -289,7 +290,7 @@ public class MainLayer {
             int result = fileChooser.showOpenDialog(MainPanel);
             if (result == JFileChooser.APPROVE_OPTION) {
                 selectedReferenceFile = fileChooser.getSelectedFile();
-                referenceProcessor.addReferenceFile(selectedReferenceFile);
+                ReferenceProcessor.addReferenceFile(selectedReferenceFile);
 
                 statusLabel.setText("Reference added: " + selectedReferenceFile.getName());
             }
@@ -310,13 +311,8 @@ public class MainLayer {
             String userInput = inputField.getText();
             if (!userInput.isEmpty()) {
                 String fullPrompt = "";
-                if (referenceProcessor.getReferenceFiles().size() >0) {
-                    fullPrompt = "Below is a list of files that is relevant for the context,"+ referenceProcessor.generateReferenceFilePrompt()+"\n Based on the context files above," +
-                            "generate the answer based on the following mission:" +userInput;
-
-                }else{
-                    fullPrompt = userInput;
-                }
+                ReferenceProcessor.InitProjectContext();
+                fullPrompt = ReferenceProcessor.generateFullPrompt() + userInput;
                 System.out.println("Full Prompt: " + fullPrompt);
                 // Create message areas
                 JTextArea inputArea = new JTextArea("User: " + userInput);
@@ -342,7 +338,7 @@ public class MainLayer {
                 sendButton.setEnabled(false);
                 statusLabel.setText("Generating response...");
 
-                // Add message to session
+                // Add user message to session manager
                 ChatSession currentSession = sessionManager.getActiveSession();
                 if (currentSession != null) {
                     currentSession.addMessage(userInput, true);
@@ -357,6 +353,7 @@ public class MainLayer {
                             currentSession,
                             aiResponse -> {
                                 SwingUtilities.invokeLater(() -> {
+                                    // Append response to answer area
                                     responseBuilder.append(aiResponse);
                                     answerArea.setText("Assistant: " + responseBuilder.toString());
                                     
@@ -370,7 +367,7 @@ public class MainLayer {
                                 });
                             }).thenRun(() -> {
                                 SwingUtilities.invokeLater(() -> {
-                                    // Only store the complete response once
+                                    // store AI response in the session manager
                                     currentSession.addMessage(responseBuilder.toString(), false);
                                     sendButton.setEnabled(true);
                                     statusLabel.setText("");
