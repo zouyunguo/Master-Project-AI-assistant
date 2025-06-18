@@ -5,7 +5,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.actionSystem.EditorActionHandler;
-import com.intellij.openapi.editor.actions.EnterAction;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,9 +13,9 @@ public class EnterKeyHandler extends EditorActionHandler {
     private final EditorActionHandler originalHandler;
     private final CodeCompletionService completionService;
 
-    public EnterKeyHandler(EditorActionHandler originalHandler) {
+    public EnterKeyHandler(EditorActionHandler originalHandler, CodeCompletionService completionService) {
         this.originalHandler = originalHandler;
-        this.completionService = new CodeCompletionService();
+        this.completionService = completionService;
     }
 
     @Override
