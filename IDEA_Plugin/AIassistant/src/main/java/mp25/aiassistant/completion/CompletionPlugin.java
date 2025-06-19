@@ -41,6 +41,10 @@ public class CompletionPlugin implements ProjectActivity {
             TabKeyHandler tabKeyHandler = new TabKeyHandler(originalTabHandler, inlayManager);
             actionManager.setActionHandler("EditorTab", tabKeyHandler);
 
+            EditorActionHandler originalEscHandler = actionManager.getActionHandler("EditorEscape");
+            EscapeKeyHandler escapeKeyHandler = new EscapeKeyHandler(originalEscHandler, inlayManager);
+            actionManager.setActionHandler("EditorEscape", escapeKeyHandler);
+
             // 为所有编辑器添加监听器
             EditorFactory.getInstance().addEditorFactoryListener(new EditorFactoryListener() {
                 @Override
