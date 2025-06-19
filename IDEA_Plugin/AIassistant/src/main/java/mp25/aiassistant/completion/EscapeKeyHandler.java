@@ -21,7 +21,7 @@ public class EscapeKeyHandler extends EditorActionHandler {
         // 如果有活动的补全预览，清除它
         if (inlayManager.hasActiveCompletion()) {
             inlayManager.clearPreview(editor);
-            // ⚠️ 保证 IDE 状态一致，仍然执行原始处理器
+            //保证 IDE 状态一致，仍然执行原始处理器
             if (originalHandler != null) {
                 originalHandler.execute(editor, caret, dataContext);
             }
