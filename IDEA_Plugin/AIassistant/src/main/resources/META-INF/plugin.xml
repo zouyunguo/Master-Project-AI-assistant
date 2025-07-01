@@ -27,8 +27,7 @@
         <toolWindow factoryClass="mp25.aiassistant.SideBarWindow" id="AI Assistant"></toolWindow>
         <postStartupActivity implementation="mp25.aiassistant.completion.CompletionPlugin"/>
 
-    </extensions>
-    <actions>
+    </extensions><actions>
         <action id="mp25.aiassistant.InlineChat" class="mp25.aiassistant.InlineChat" text="Inline Chat">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl I"/>
         </action>

@@ -7,20 +7,18 @@ import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.*;
-import com.intellij.openapi.editor.ex.EditorEx;
-import com.intellij.openapi.editor.markup.TextAttributes;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.ui.components.JBScrollPane;
-import org.jetbrains.annotations.NotNull;
+import com.intellij.openapi.util.TextRange;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class InlineChat extends AnAction {
     JPanel inputPanel = new JPanel(new BorderLayout());
@@ -35,7 +33,6 @@ public class InlineChat extends AnAction {
     }
     @Override
     public void actionPerformed(AnActionEvent e) {
-        System.out.println("InlineChat action performed");
         inputPanel.add(inputField, BorderLayout.NORTH);
         sendButton.setIcon(AllIcons.Debugger.PromptInput);
         // 模型选择器
@@ -84,7 +81,20 @@ public class InlineChat extends AnAction {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String userInput = inputField.getText();
-                String fullPrompt= "Please only output code, no other texts to explain your work, the input task is:" + userInput +".Return your code in a code block, which starts with ```LanguageName\\n and ends with ```\n";
+                Document document = editor.getDocument();
+                CaretModel caretModel = editor.getCaretModel();
+                int offset = caretModel.getOffset();
+                int docLength = document.getTextLength();
+
+                int contextSize = 2000;
+                int start = Math.max(0, offset - contextSize);
+                int end = Math.min(docLength, offset + contextSize);
+
+                String beforeContext = document.getText(new TextRange(start, offset));
+                String afterContext = document.getText(new TextRange(offset, end));
+
+                String fullPrompt= "Please only output code, no other texts to explain your work, the input task is:" + userInput +"\n\n below is the context before and after the current cursor\n"+"beforeContext:"+beforeContext+"\n afterContext:"+afterContext+".Return your code in a code block based on the input task and context, which starts with ```LanguageName\\n and ends with ```\n";
+                System.out.println("Full Prompt: " + fullPrompt);
                 if (!userInput.isEmpty()) {
                     // 禁用按钮以防止重复点击
                     sendButton.setEnabled(false);
@@ -94,19 +104,22 @@ public class InlineChat extends AnAction {
                     OllamaService.generateResponse(selectedModel, fullPrompt, responseLine -> {
                         //对responseLine进行处理，去除以<thinking>和</thinking>标签包裹的思考内容
                         System.out.println("Response: " + responseLine);
-                        String codeBlock = responseLine.replaceAll("(?s).*?```\\w+\\n(.*?)\\n```.*", "$1");
-
+                        Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");
+                        Matcher matcher = pattern.matcher(responseLine);
+                        String codeBlock="";
+                        if (matcher.find()) {
+                             codeBlock = matcher.group(1);
+                            // codeBlock 就是被 ``` 包裹的内容
+                        }
+                        final String finalCodeBlock = codeBlock;
                         // 在事件调度线程中更新 UI
                         ApplicationManager.getApplication().invokeLater(() -> {
                             WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
                                 // 获取 Editor 的 Document 对象
-                                Document document = editor.getDocument();
-                                CaretModel caretModel = editor.getCaretModel();
-                                int offset = caretModel.getOffset();
 
                                 // 在光标位置插入返回结果
-                                document.insertString(offset+Chatoffset, codeBlock);
-                                Chatoffset+= codeBlock.length();
+                                document.insertString(offset+Chatoffset, finalCodeBlock);
+                                Chatoffset+= finalCodeBlock.length();
                                 // 关闭弹出窗口
                                 popup.cancel();
 

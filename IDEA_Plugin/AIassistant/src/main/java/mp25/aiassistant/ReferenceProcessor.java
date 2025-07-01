@@ -2,22 +2,10 @@ package mp25.aiassistant;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
-import com.intellij.ui.components.JBList;
-import com.intellij.ui.components.JBScrollPane;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
-
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.function.Consumer;
-
-import javax.swing.*;
-import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,39 +66,65 @@ public class ReferenceProcessor {
 
         return promptBuilder.toString();
     }
-    public static String parseProjectSourceFiles(){
+    public static String parseProjectSourceFiles() {
         StringBuilder promptBuilder = new StringBuilder();
 
         for (File file : javaFiles) {
             try {
-            promptBuilder.append("\n```referenced src file"+ " " + (javaFiles.indexOf(file) + 1) + ",\n");
-            String fileName = file.getName();
-            fileName ="File name: " + fileName + ",\n";
-            promptBuilder.append(fileName);
-            String content = " File Content:\n";
-            promptBuilder.append(content);
-                // Read the file content using ISO_8859_1 encoding
-                String fileContent=java.nio.file.Files.readString(file.toPath(), StandardCharsets.ISO_8859_1);
+                promptBuilder.append("\n```referenced src file " + (javaFiles.indexOf(file) + 1) + ",\n");
+                String fileName = "File name: " + file.getName() + ",\n";
+                promptBuilder.append(fileName);
+                promptBuilder.append("File Content:\n");
+
+                String fileContent = java.nio.file.Files.readString(file.toPath(), StandardCharsets.ISO_8859_1);
                 CompilationUnit cu = new JavaParser().parse(fileContent).getResult().orElse(null);
 
                 if (cu != null) {
-                    // 提取类名
-                    cu.findAll(ClassOrInterfaceDeclaration.class).forEach(cls -> {
+                    for (ClassOrInterfaceDeclaration cls : cu.findAll(ClassOrInterfaceDeclaration.class)) {
                         promptBuilder.append("Class: ").append(cls.getName()).append("\n");
-
-                        // 提取方法名
-                        cls.findAll(MethodDeclaration.class).forEach(method -> {
-                            promptBuilder.append("  Method: ").append(method.getName()).append("\n");
+                        if (!cls.getExtendedTypes().isEmpty()) {
+                            promptBuilder.append("  Extends: ");
+                            cls.getExtendedTypes().forEach(ext -> promptBuilder.append(ext.getName()).append(" "));
+                            promptBuilder.append("\n");
+                        }
+                        if (!cls.getImplementedTypes().isEmpty()) {
+                            promptBuilder.append("  Implements: ");
+                            cls.getImplementedTypes().forEach(impl -> promptBuilder.append(impl.getName()).append(" "));
+                            promptBuilder.append("\n");
+                        }
+                        // 类字段
+                        cls.getFields().forEach(field -> {
+                            field.getVariables().forEach(var -> {
+                                promptBuilder.append("  Field: ")
+                                        .append(var.getType()).append(" ").append(var.getName()).append("\n");
+                            });
                         });
-                    });
+                        // 方法签名和局部变量
+                        cls.getMethods().forEach(method -> {
+                            promptBuilder.append("  Method: ")
+                                    .append(method.getType()).append(" ")
+                                    .append(method.getName()).append("(");
+                            method.getParameters().forEach(param -> {
+                                promptBuilder.append(param.getType()).append(" ").append(param.getName()).append(", ");
+                            });
+                            if (!method.getParameters().isEmpty()) {
+                                promptBuilder.setLength(promptBuilder.length() - 2); // 去掉最后的逗号
+                            }
+                            promptBuilder.append(")\n");
+                            // 局部变量
+                            method.findAll(com.github.javaparser.ast.body.VariableDeclarator.class).forEach(var -> {
+                                promptBuilder.append("    Local Var: ")
+                                        .append(var.getType()).append(" ").append(var.getName()).append("\n");
+                            });
+                        });
+                    }
                 }
             } catch (Exception e) {
-                //generate a Jpanel if there is an error reading the file
-                String error= "Error reading file: " + e;
-                System.out.println(error);
+                System.out.println("Error reading file: " + e);
             }
-
         }
+        return promptBuilder.toString();
+    }
         /*for(File file: otherFiles){
             try {
                 promptBuilder.append("\n```referenced other src file"+ " " + (otherFiles.indexOf(file) + 1) + ",\n");
@@ -128,8 +142,6 @@ public class ReferenceProcessor {
                 System.out.println(error);
             }
         }*/
-        return promptBuilder.toString();
-    }
 
     // get the project directory
     public static void InitProjectContext() {
