@@ -1,10 +1,15 @@
 package mp25.aiassistant;
 
+import com.intellij.openapi.editor.CaretModel;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.editor.*;
+
 import java.nio.charset.StandardCharsets;
 import java.io.File;
 import java.util.ArrayList;
@@ -177,6 +182,22 @@ public class ReferenceProcessor {
                 }
             }
         }
+    }
+
+    public static String getContext(Editor editor,int contextMaxSize) {
+        Document document = editor.getDocument();
+        CaretModel caretModel = editor.getCaretModel();
+        int offset = caretModel.getOffset();
+        int docLength = document.getTextLength();
+
+        int contextSize = 2000;
+        int start = Math.max(0, offset - contextSize);
+        int end = Math.min(docLength, offset + contextSize);
+
+        String beforeContext = document.getText(new TextRange(start, offset));
+        String afterContext = document.getText(new TextRange(offset, end));
+
+        return beforeContext+"<Cursor>"+afterContext;
     }
 
     public static String generateFullPrompt(){

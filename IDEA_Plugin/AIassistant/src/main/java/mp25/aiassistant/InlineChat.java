@@ -84,16 +84,10 @@ public class InlineChat extends AnAction {
                 Document document = editor.getDocument();
                 CaretModel caretModel = editor.getCaretModel();
                 int offset = caretModel.getOffset();
-                int docLength = document.getTextLength();
-
-                int contextSize = 2000;
-                int start = Math.max(0, offset - contextSize);
-                int end = Math.min(docLength, offset + contextSize);
-
-                String beforeContext = document.getText(new TextRange(start, offset));
-                String afterContext = document.getText(new TextRange(offset, end));
-
-                String fullPrompt= "Please only output code, no other texts to explain your work, the input task is:" + userInput +"\n\n below is the context before and after the current cursor\n"+"beforeContext:"+beforeContext+"\n afterContext:"+afterContext+".Return your code in a code block based on the input task and context, which starts with ```LanguageName\\n and ends with ```\n";
+                String Context=ReferenceProcessor.getContext(editor,1000);
+                String beforeContext= Context.split("<Cursor>")[0];
+                String afterContext= Context.split("<Cursor>")[1];
+                String fullPrompt= "You are an AI agent helping with coding, your mission is to insert proper code snippet based on the input task at the current cursor based on the context before and after the cursor. The input task is:" + userInput +"\n\n below is the context before the current cursor:\n"+beforeContext+"\n and then is the context after the current cursor:\n"+afterContext+" .Return your code in a code block based on the input task and context, which starts with ```LanguageName\\n and ends with ```\n";
                 System.out.println("Full Prompt: " + fullPrompt);
                 if (!userInput.isEmpty()) {
                     // 禁用按钮以防止重复点击

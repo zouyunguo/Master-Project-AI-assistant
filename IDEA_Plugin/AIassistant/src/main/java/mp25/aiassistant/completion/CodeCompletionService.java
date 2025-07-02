@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.project.Project;
 import mp25.aiassistant.OllamaService;
+import mp25.aiassistant.ReferenceProcessor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -27,7 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CodeCompletionService {
-    private static final int CONTEXT_CHARS = 1000;
+    private static final int CONTEXT_CHARS = 500;
     String[] modelList = new String[]{"none"};
     private final CompletionInlayManager inlayManager;
 
@@ -37,13 +38,14 @@ public class CodeCompletionService {
     }
 
     public void requestCompletion(Editor editor, Project project) {
-        String context = ReadAction.compute(() -> getEditorContextByAST(editor));
-        if (context != null && !context.isEmpty()) {
+        String context = ReferenceProcessor.getContext(editor,CONTEXT_CHARS);
+        if ( !context.isEmpty()) {
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 String completion = getCompletionFromOllama(context);
                 if (completion != null && !completion.isEmpty()) {
                     ApplicationManager.getApplication().invokeLater(() -> {
                         if (!project.isDisposed()) {
+
                             inlayManager.showCompletionPreview(editor, completion);
                         }
                     });
@@ -72,57 +74,6 @@ public class CodeCompletionService {
     }
 
     /**
-     * 使用 JavaParser 提取光标所在方法的源码
-     */
-    private String getEditorContextByAST(Editor editor) {
-        String code = editor.getDocument().getText();
-        int offset = editor.getCaretModel().getOffset();
-
-        try {
-            CompilationUnit cu = StaticJavaParser.parse(new StringReader(code));
-            Optional<MethodDeclaration> methodOpt = findMethodAtOffset(cu, offset);
-            if (methodOpt.isPresent()) {
-                MethodDeclaration method = methodOpt.get();
-                return method.toString();
-            } else {
-                return fallbackContext(code, offset);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return fallbackContext(code, offset);
-        }
-    }
-
-    /**
-     * 递归查找包含 offset 的最内层方法声明
-     */
-    private Optional<MethodDeclaration> findMethodAtOffset(Node node, int offset) {
-        for (Node child : node.getChildNodes()) {
-            Optional<MethodDeclaration> result = findMethodAtOffset(child, offset);
-            if (result.isPresent()) return result;
-        }
-
-        if (node instanceof MethodDeclaration) {
-            MethodDeclaration method = (MethodDeclaration) node;
-            int begin = method.getBegin().map(p -> p.column).orElse(-1);
-            int end = method.getEnd().map(p -> p.column).orElse(-1);
-            if (begin != -1 && end != -1 && offset >= begin && offset <= end) {
-                return Optional.of(method);
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * 如果 AST 提取失败，使用字符截断兜底
-     */
-    private String fallbackContext(String code, int offset) {
-        int start = Math.max(0, offset - CONTEXT_CHARS);
-        int end = Math.min(code.length(), offset + CONTEXT_CHARS);
-        return code.substring(start, offset) + "<cursor>" + code.substring(offset, end);
-    }
-
-    /**
      * 调用 Ollama 本地模型生成补全
      */
     private String getCompletionFromOllama(String context) {
@@ -143,7 +94,16 @@ public class CodeCompletionService {
             return null;
         });
         AtomicReference<String> returnString= new AtomicReference<>("");
-        String fullPrompt= "You are a AI agent aiming to provide auto-completion for software development, your task is to provide a code completion based on the following context:\n" + context + "\nPlease only output code, no other texts to explain your work, return your code which starts with ```LanguageName\\n and ends with ```\n";
+
+
+        String fullPrompt= "You are a AI agent aiming to provide auto-completion function, your task is " +
+                "to provide a proper code snippet to be inserted at the current cursor position where some code is missing, you have to give your answer based " +
+                "on the context before and after cursor position, below is the context:\n" + context+"\n Inside the context above there is a <Cursor> tag which indicates the current cursor position," +
+                " the place where <Cursor> tag is located usually missed something and it is the place where the user wants to insert the code to complete the missing part, " +
+                "\nPlease only output the code snippet which starts with ```LanguageName\\n and ends with ```\n";
+
+
+        System.out.println(fullPrompt);
         OllamaService.generateResponse(modelList[0], fullPrompt, responseLine -> {
             //对responseLine进行处理，去除以<thinking>和</thinking>标签包裹的思考内容
             System.out.println("Response: " + responseLine);

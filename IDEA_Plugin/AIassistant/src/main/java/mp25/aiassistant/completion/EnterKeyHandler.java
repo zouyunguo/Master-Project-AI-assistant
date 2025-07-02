@@ -31,6 +31,7 @@ public class EnterKeyHandler extends EditorActionHandler {
             // 延迟一点执行，确保回车已经插入
             ApplicationManager.getApplication().invokeLater(() -> {
                 completionService.requestCompletion(editor, project);
+
             });
         }
     }

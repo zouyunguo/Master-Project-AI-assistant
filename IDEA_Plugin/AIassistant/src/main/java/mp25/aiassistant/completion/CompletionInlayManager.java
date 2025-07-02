@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,14 +28,14 @@ public class CompletionInlayManager {
             return;
         }
 
-        currentCompletion = completion;
-        completionOffset = editor.getCaretModel().getOffset();
 
+        currentCompletion = completion;
+        completionOffset =  editor.getCaretModel().getOffset();
         InlayModel inlayModel = editor.getInlayModel();
         String[] lines = completion.split("\n", -1);
 
         // 第一行显示在当前行的inline位置
-        if (lines.length > 0 && !lines[0].isEmpty()) {
+/*        if (lines.length > 0 && !lines[0].isEmpty()) {
             Inlay<?> inlay = inlayModel.addInlineElement(
                     completionOffset,
                     new CompletionRenderer(lines[0])
@@ -42,10 +43,11 @@ public class CompletionInlayManager {
             if (inlay != null) {
                 activeInlays.add(inlay);
             }
-        }
+
+        }*/
 
         // 其余行显示为block elements
-        for (int i = 1; i < lines.length; i++) {
+        for (int i = 0; i < lines.length; i++) {
             Inlay<?> inlay = inlayModel.addBlockElement(
                     completionOffset,
                     true,
@@ -57,6 +59,9 @@ public class CompletionInlayManager {
                 activeInlays.add(inlay);
             }
         }
+
+
+
     }
 
     public void clearPreview(Editor editor) {
