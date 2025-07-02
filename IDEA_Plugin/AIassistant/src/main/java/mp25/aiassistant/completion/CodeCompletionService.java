@@ -1,12 +1,10 @@
 package mp25.aiassistant.completion;
 
-import com.github.javaparser.JavaParser;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Editor;
@@ -15,31 +13,27 @@ import com.intellij.openapi.editor.event.CaretListener;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.project.Project;
+import mp25.aiassistant.OllamaService;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
+import javax.swing.*;
 import java.io.StringReader;
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CodeCompletionService {
-    private static final String OLLAMA_API_URL = "http://localhost:11434/api/generate";
     private static final int CONTEXT_CHARS = 1000;
-
+    String[] modelList = new String[]{"none"};
     private final CompletionInlayManager inlayManager;
-    private final HttpClient httpClient;
-    private final Gson gson;
 
     public CodeCompletionService(CompletionInlayManager inlayManager) {
         this.inlayManager = inlayManager;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-        this.gson = new Gson();
+
     }
 
     public void requestCompletion(Editor editor, Project project) {
@@ -132,24 +126,52 @@ public class CodeCompletionService {
      * 调用 Ollama 本地模型生成补全
      */
     private String getCompletionFromOllama(String context) {
-        JsonObject body = new JsonObject();
-        body.addProperty("model", "qwen2.5-coder:1.5b");
-        body.addProperty("prompt", context);
-        body.addProperty("stream", false);
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(OLLAMA_API_URL))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                .build();
-
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            JsonObject result = gson.fromJson(response.body(), JsonObject.class);
-            return result.get("response").getAsString();
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+        CompletableFuture<String[]> modelsFuture = OllamaService.getModels();
+        modelsFuture.thenAccept(response -> {
+            // Parse the response and return an array of model names
+            String[] models = response;
+            for (int i = 0; i < models.length; i++) {
+                models[i] = models[i].trim(); // Clean up whitespace
+            }
+            modelList=models;
+        }).exceptionally(ex -> {
+            // Handle errors
+            SwingUtilities.invokeLater(() -> {
+                System.out.println("Error fetching models: " + ex.getMessage());
+            });
             return null;
-        }
+        });
+        AtomicReference<String> returnString= new AtomicReference<>("");
+        String fullPrompt= "You are a AI agent aiming to provide auto-completion for software development, your task is to provide a code completion based on the following context:\n" + context + "\nPlease only output code, no other texts to explain your work, return your code which starts with ```LanguageName\\n and ends with ```\n";
+        OllamaService.generateResponse(modelList[0], fullPrompt, responseLine -> {
+            //对responseLine进行处理，去除以<thinking>和</thinking>标签包裹的思考内容
+            System.out.println("Response: " + responseLine);
+            Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");
+            Matcher matcher = pattern.matcher(responseLine);
+            String codeBlock="";
+            if (matcher.find()) {
+                codeBlock = matcher.group(1);
+                // codeBlock 就是被 ``` 包裹的内容
+            }
+           returnString.set(codeBlock);
+
+        }).exceptionally(ex -> {
+            // 处理异常
+            SwingUtilities.invokeLater(() -> {
+                System.out.println("Error: " + ex.getMessage());
+
+            });
+            return null;
+        });
+        return ReadAction.compute(() -> {
+            // 等待异步操作完成
+            try {
+                Thread.sleep(1000); // 等待1秒，确保 Ollama 响应已处理
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return returnString.get();
+        });
     }
 }
