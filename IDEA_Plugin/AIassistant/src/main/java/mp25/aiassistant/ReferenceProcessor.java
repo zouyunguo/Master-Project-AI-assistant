@@ -197,7 +197,7 @@ public class ReferenceProcessor {
         String beforeContext = document.getText(new TextRange(start, offset));
         String afterContext = document.getText(new TextRange(offset, end));
 
-        return beforeContext+"<Cursor>"+afterContext;
+        return beforeContext+"<BLANK>"+afterContext;
     }
 
     public static String generateFullPrompt(){

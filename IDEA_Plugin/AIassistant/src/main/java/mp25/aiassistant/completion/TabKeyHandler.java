@@ -32,6 +32,7 @@ public class TabKeyHandler extends EditorActionHandler {
                 // 插入补全内容
                 WriteCommandAction.runWriteCommandAction(project, () -> {
                     int offset = editor.getCaretModel().getOffset();
+
                     editor.getDocument().insertString(offset, completion);
                     editor.getCaretModel().moveToOffset(offset + completion.length());
                 });

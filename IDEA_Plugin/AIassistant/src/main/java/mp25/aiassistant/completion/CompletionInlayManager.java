@@ -30,6 +30,7 @@ public class CompletionInlayManager {
 
 
         currentCompletion = completion;
+        System.out.println(completion);
         completionOffset =  editor.getCaretModel().getOffset();
         InlayModel inlayModel = editor.getInlayModel();
         String[] lines = completion.split("\n", -1);

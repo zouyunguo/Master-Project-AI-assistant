@@ -76,7 +76,7 @@ public class CodeCompletionService {
     /**
      * 调用 Ollama 本地模型生成补全
      */
-    private String getCompletionFromOllama(String context) {
+   /* private String getCompletionFromOllama(String context) {
 
         CompletableFuture<String[]> modelsFuture = OllamaService.getModels();
         modelsFuture.thenAccept(response -> {
@@ -96,25 +96,26 @@ public class CodeCompletionService {
         AtomicReference<String> returnString= new AtomicReference<>("");
 
 
-        String fullPrompt= "You are a AI agent aiming to provide auto-completion function, your task is " +
-                "to provide a proper code snippet to be inserted at the current cursor position where some code is missing, you have to give your answer based " +
-                "on the context before and after cursor position, below is the context:\n" + context+"\n Inside the context above there is a <Cursor> tag which indicates the current cursor position," +
-                " the place where <Cursor> tag is located usually missed something and it is the place where the user wants to insert the code to complete the missing part, " +
-                "\nPlease only output the code snippet which starts with ```LanguageName\\n and ends with ```\n";
+*//*
+        String fullPrompt= "You are a AI agent aiming to provide code completion function, your task is " +
+                "to complete the following code block where something is missing, below is the code block to be completed\n" + context+"\n Fill in the blank to complete the code block. Your response should include only the code to replace <BLANK>, without surrounding backticks,include" +
+                "the code block in ``` tags, and do not include any other text or explanation.\n" ;
 
-
-        System.out.println(fullPrompt);
+*//*
+        String fullPrompt= "You are a AI agent aiming to provide code completion function, your task is " +
+                "to complete the following code block where something is missing, below is the code block to be completed\n" + context+"\n Fill in the blank to complete the code block. Your response should include only the code to replace <BLANK>, without surrounding backticks";
         OllamaService.generateResponse(modelList[0], fullPrompt, responseLine -> {
+            System.out.println("Response: " + fullPrompt);
             //对responseLine进行处理，去除以<thinking>和</thinking>标签包裹的思考内容
-            System.out.println("Response: " + responseLine);
-            Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");
+            *//*Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");
             Matcher matcher = pattern.matcher(responseLine);
             String codeBlock="";
             if (matcher.find()) {
                 codeBlock = matcher.group(1);
                 // codeBlock 就是被 ``` 包裹的内容
-            }
-           returnString.set(codeBlock);
+            }*//*
+           returnString.set(responseLine);
+
 
         }).exceptionally(ex -> {
             // 处理异常
@@ -127,11 +128,45 @@ public class CodeCompletionService {
         return ReadAction.compute(() -> {
             // 等待异步操作完成
             try {
-                Thread.sleep(1000); // 等待1秒，确保 Ollama 响应已处理
+                Thread.sleep(3000); // 等待1秒，确保 Ollama 响应已处理
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             return returnString.get();
         });
+    }*/
+
+    private String getCompletionFromOllama(String context) {
+        try {
+            // 获取模型列表
+            String[] models = OllamaService.getModels().get(); // 使用 get() 方法同步获取结果
+            for (int i = 0; i < models.length; i++) {
+                models[i] = models[i].trim(); // 清理空白
+            }
+            modelList = models;
+
+            // 构建完整的提示
+            String fullPrompt = "You are a AI agent aiming to provide code completion function, your task is " +
+                    "to complete the following code block where something is missing, below is the code block to be completed\n" +
+                    context + "\n Fill in the blank to complete the code block. Your response should include only the code to replace <BLANK>, without surrounding backticks,include the response code block in ``` tags.\n";
+
+            // 同步生成响应
+            StringBuilder responseBuilder = new StringBuilder();
+            OllamaService.generateResponse(modelList[0], fullPrompt, responseBuilder::append).get(); // 使用 get() 方法同步获取结果
+            Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");
+            System.out.println("ResponseBefore:" + responseBuilder.toString());
+            Matcher matcher = pattern.matcher(responseBuilder.toString());
+            String codeBlock="";
+            if (matcher.find()) {
+                codeBlock = matcher.group(1);
+                // codeBlock 就是被 ``` 包裹的内容
+            }
+            System.out.println("Response: " + codeBlock);
+            // 返回响应内容
+            return codeBlock;
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+            return "";
+        }
     }
 }
