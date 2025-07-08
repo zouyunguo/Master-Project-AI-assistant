@@ -85,9 +85,11 @@ public class InlineChat extends AnAction {
                 CaretModel caretModel = editor.getCaretModel();
                 int offset = caretModel.getOffset();
                 String Context=ReferenceProcessor.getContext(editor,1000);
-                String beforeContext= Context.split("<Cursor>")[0];
-                String afterContext= Context.split("<Cursor>")[1];
-                String fullPrompt= "You are an AI agent helping with coding, your mission is to insert proper code snippet based on the input task at the current cursor based on the context before and after the cursor. The input task is:" + userInput +"\n\n below is the context before the current cursor:\n"+beforeContext+"\n and then is the context after the current cursor:\n"+afterContext+" .Return your code in a code block based on the input task and context, which starts with ```LanguageName\\n and ends with ```\n";
+
+                String fullPrompt = "You are a AI agent aiming to provide code completion function, your task is " +
+                        "to complete the following code block where something is missing based on the input task given by users, below is the input task:"+userInput+"\n Then is the code block to be completed\n" +
+                        Context + "\n Fill in the blank to complete the code block. Your response should include only the code to replace <BLANK>, without surrounding backticks,include the response code block in ``` tags.\n";
+
                 System.out.println("Full Prompt: " + fullPrompt);
                 if (!userInput.isEmpty()) {
                     // 禁用按钮以防止重复点击

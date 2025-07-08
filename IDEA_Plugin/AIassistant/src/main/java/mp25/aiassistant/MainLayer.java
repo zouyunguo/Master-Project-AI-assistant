@@ -6,7 +6,7 @@ import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
 import mp25.aiassistant.chat.ChatSession;
 import mp25.aiassistant.chat.SessionManager;
-
+import mp25.aiassistant.Utils.MarkdownUtils;
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
@@ -315,7 +315,7 @@ public class MainLayer {
                 fullPrompt = ReferenceProcessor.generateFullPrompt() + userInput;
                 System.out.println("Full Prompt: " + fullPrompt);
                 // Create message areas
-                JTextArea inputArea = new JTextArea("User: " + userInput);
+                /*JTextArea inputArea = new JTextArea("User: " + userInput);
                 inputArea.setEditable(false);
                 inputArea.setLineWrap(true);
                 inputArea.setWrapStyleWord(true);
@@ -329,8 +329,24 @@ public class MainLayer {
                 answerArea.setBackground(new Color(60, 63, 65));
                 answerArea.setWrapStyleWord(true);
                 answerArea.setMargin(new Insets(0, 0, 25, 25));
-                answerArea.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));
+                answerArea.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));*/
+                JEditorPane inputArea = new JEditorPane();
+                inputArea.setContentType("text/html");
+                inputArea.setEditable(false);
+                inputArea.setText("<html><body style='font-family: Arial; color: #FFFFFF; background-color: #2B2D30;'>"
+                        +  MarkdownUtils.toHtml("User: " +userInput) + "</body></html>");
+                inputArea.setBackground(new Color(43, 45, 48));
+                inputArea.setMargin(new Insets(0, 0, 25, 25));
+                inputArea.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
 
+                JEditorPane answerArea = new JEditorPane();
+                answerArea.setContentType("text/html");
+                answerArea.setEditable(false);
+                answerArea.setText("<html><body style='font-family: Arial; color: #FFFFFF; background-color: #3C3F41; white-space: normal; font-size: 16px;'>"
+                        +  MarkdownUtils.toHtml("Assistant: " )+ "</body></html>");
+                answerArea.setBackground(new Color(60, 63, 65));
+                answerArea.setMargin(new Insets(0, 0, 25, 25));
+                answerArea.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
                 chatPanel.add(inputArea);
                 chatPanel.add(answerArea);
 
@@ -355,8 +371,14 @@ public class MainLayer {
                                 SwingUtilities.invokeLater(() -> {
                                     // Append response to answer area
                                     responseBuilder.append(aiResponse);
-                                    answerArea.setText("Assistant: " + responseBuilder.toString());
-                                    
+                                    // 获取当前的 HTML 内容
+
+
+                                    //answerArea.setText("Assistant: " + responseBuilder.toString());
+                                    String currentHtml = answerArea.getText();
+                                    String newText = MarkdownUtils.toHtml(responseBuilder.toString());
+                                    String updatedHtml = currentHtml.replaceAll("(?s)(<body.*?>).*?(</body>)", "$1" + newText + "$2");
+                                    answerArea.setText(updatedHtml);
                                     chatPanel.revalidate();
                                     chatPanel.repaint();
 
@@ -368,10 +390,13 @@ public class MainLayer {
                             }).thenRun(() -> {
                                 SwingUtilities.invokeLater(() -> {
                                     // store AI response in the session manager
+
                                     currentSession.addMessage(responseBuilder.toString(), false);
                                     sendButton.setEnabled(true);
                                     statusLabel.setText("");
                                     selectedReferenceFile = null;
+
+
                                 });
                             }).exceptionally(ex -> {
                                 SwingUtilities.invokeLater(() -> {

@@ -154,14 +154,12 @@ public class CodeCompletionService {
             StringBuilder responseBuilder = new StringBuilder();
             OllamaService.generateResponse(modelList[0], fullPrompt, responseBuilder::append).get(); // 使用 get() 方法同步获取结果
             Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");
-            System.out.println("ResponseBefore:" + responseBuilder.toString());
             Matcher matcher = pattern.matcher(responseBuilder.toString());
             String codeBlock="";
             if (matcher.find()) {
                 codeBlock = matcher.group(1);
                 // codeBlock 就是被 ``` 包裹的内容
             }
-            System.out.println("Response: " + codeBlock);
             // 返回响应内容
             return codeBlock;
         } catch (Exception e) {

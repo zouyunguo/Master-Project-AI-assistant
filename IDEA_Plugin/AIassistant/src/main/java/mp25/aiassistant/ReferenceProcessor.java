@@ -210,7 +210,7 @@ public class ReferenceProcessor {
 
         fullPrompt.append("In addition, you will receive reference files that is manually added by users that may contain additional information or context in below.\n");
         fullPrompt.append(generateReferenceFilePrompt());
-        fullPrompt.append("given the above information, please answer the user's question :");
+        fullPrompt.append("given the above information, please output your response in MarkDown format by answering the user's question :");
 
 
         return fullPrompt.toString();
