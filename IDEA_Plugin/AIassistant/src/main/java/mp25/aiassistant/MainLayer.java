@@ -4,6 +4,7 @@ import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
+import mp25.aiassistant.Utils.StreamingMarkdownPanel;
 import mp25.aiassistant.chat.ChatSession;
 import mp25.aiassistant.chat.SessionManager;
 import mp25.aiassistant.Utils.MarkdownUtils;
@@ -15,9 +16,13 @@ import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+
+
+
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import com.intellij.icons.AllIcons;
+import org.apache.batik.bridge.Mark;
 
 
 public class MainLayer {
@@ -330,25 +335,35 @@ public class MainLayer {
                 answerArea.setWrapStyleWord(true);
                 answerArea.setMargin(new Insets(0, 0, 25, 25));
                 answerArea.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));*/
+
+
                 JEditorPane inputArea = new JEditorPane();
                 inputArea.setContentType("text/html");
                 inputArea.setEditable(false);
-                inputArea.setText("<html><body style='font-family: Arial; color: #FFFFFF; background-color: #2B2D30;'>"
+                inputArea.setText("<html><body style='font-family: Arial; color: #FFFFFF; background-color: #2B2D30; white-space: normal；'>"
                         +  MarkdownUtils.toHtml("User: " +userInput) + "</body></html>");
                 inputArea.setBackground(new Color(43, 45, 48));
                 inputArea.setMargin(new Insets(0, 0, 25, 25));
+
                 inputArea.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
 
                 JEditorPane answerArea = new JEditorPane();
                 answerArea.setContentType("text/html");
                 answerArea.setEditable(false);
-                answerArea.setText("<html><body style='font-family: Arial; color: #FFFFFF; background-color: #3C3F41; white-space: normal; font-size: 16px;'>"
-                        +  MarkdownUtils.toHtml("Assistant: " )+ "</body></html>");
+              answerArea.setText("<html><body style='font-family: Arial;  white-space: normal; '>"
+                        + "</body></html>");
+
                 answerArea.setBackground(new Color(60, 63, 65));
                 answerArea.setMargin(new Insets(0, 0, 25, 25));
                 answerArea.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
                 chatPanel.add(inputArea);
                 chatPanel.add(answerArea);
+/*                StreamingMarkdownPanel inputArea = new StreamingMarkdownPanel(700, "#2B2D30", "#FFFFFF");
+                inputArea.appendMarkdown("User: " + userInput);
+                StreamingMarkdownPanel answerArea = new StreamingMarkdownPanel(700, "#3C3F41", "#FFFFFF");
+                answerArea.appendMarkdown("Assistant: ");
+                chatPanel.add(inputArea);
+                chatPanel.add(answerArea);*/
 
                 // Update UI
                 sendButton.setEnabled(false);
@@ -389,7 +404,9 @@ public class MainLayer {
                                 });
                             }).thenRun(() -> {
                                 SwingUtilities.invokeLater(() -> {
+
                                     // store AI response in the session manager
+                                    System.out.println("AI Response: " + responseBuilder.toString());
 
                                     currentSession.addMessage(responseBuilder.toString(), false);
                                     sendButton.setEnabled(true);
@@ -400,7 +417,8 @@ public class MainLayer {
                                 });
                             }).exceptionally(ex -> {
                                 SwingUtilities.invokeLater(() -> {
-                                    answerArea.setText("Assistant: Error: " + ex.getMessage());
+                                    //answerArea.setText("Assistant: Error: " + ex.getMessage());
+                                   // chatPanel.add(MarkdownUtils.createMarkdownComponent("Error: " + ex.getMessage()));
                                     sendButton.setEnabled(true);
                                     statusLabel.setText("Error occurred");
                                 });
