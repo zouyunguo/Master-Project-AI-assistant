@@ -17,7 +17,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-
+import javafx.application.Platform;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
@@ -336,7 +336,7 @@ public class MainLayer {
                 answerArea.setMargin(new Insets(0, 0, 25, 25));
                 answerArea.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));*/
 
-
+/*
                 JEditorPane inputArea = new JEditorPane();
                 inputArea.setContentType("text/html");
                 inputArea.setEditable(false);
@@ -357,13 +357,16 @@ public class MainLayer {
                 answerArea.setMargin(new Insets(0, 0, 25, 25));
                 answerArea.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
                 chatPanel.add(inputArea);
-                chatPanel.add(answerArea);
-/*                StreamingMarkdownPanel inputArea = new StreamingMarkdownPanel(700, "#2B2D30", "#FFFFFF");
-                inputArea.appendMarkdown("User: " + userInput);
-                StreamingMarkdownPanel answerArea = new StreamingMarkdownPanel(700, "#3C3F41", "#FFFFFF");
-                answerArea.appendMarkdown("Assistant: ");
-                chatPanel.add(inputArea);
                 chatPanel.add(answerArea);*/
+                StreamingMarkdownPanel answerArea = new StreamingMarkdownPanel(700, "#3C3F41", "#FFFFFF");
+                StreamingMarkdownPanel inputArea = new StreamingMarkdownPanel(700, "#2B2D30", "#FFFFFF");
+
+                Platform.runLater(() -> {
+                    inputArea.appendMarkdown("User: " + userInput);
+                    answerArea.appendMarkdown("Assistant: ");
+                    chatPanel.add(inputArea);
+                    chatPanel.add(answerArea);
+                });
 
                 // Update UI
                 sendButton.setEnabled(false);
@@ -387,15 +390,15 @@ public class MainLayer {
                                     // Append response to answer area
                                     responseBuilder.append(aiResponse);
                                     // 获取当前的 HTML 内容
-
+                                   answerArea.appendMarkdown(aiResponse);
 
                                     //answerArea.setText("Assistant: " + responseBuilder.toString());
-                                    String currentHtml = answerArea.getText();
+/*                                    String currentHtml = answerArea.getText();
                                     String newText = MarkdownUtils.toHtml(responseBuilder.toString());
                                     String updatedHtml = currentHtml.replaceAll("(?s)(<body.*?>).*?(</body>)", "$1" + newText + "$2");
                                     answerArea.setText(updatedHtml);
                                     chatPanel.revalidate();
-                                    chatPanel.repaint();
+                                    chatPanel.repaint();*/
 
                                     SwingUtilities.invokeLater(() -> {
                                         JScrollBar verticalBar = chatScrollPane.getVerticalScrollBar();

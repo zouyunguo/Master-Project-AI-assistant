@@ -14,9 +14,9 @@ import java.awt.*;
 public class StreamingMarkdownPanel extends JPanel {
     private static final Parser parser = Parser.builder().build();
     private static final HtmlRenderer renderer = HtmlRenderer.builder().build();
-
+    private final StringBuilder markdownBuffer = new StringBuilder();
     private final JFXPanel fxPanel = new JFXPanel();
-    private final WebView webView = new WebView();
+    private  WebView webView  ;
     private final int preferredWidth;
     private final String backgroundColor;
     private final String fontColor;
@@ -37,6 +37,7 @@ public class StreamingMarkdownPanel extends JPanel {
 
     private void initWebView() {
         Platform.runLater(() -> {
+            webView= new WebView();
             webView.setPrefWidth(preferredWidth);
             String initialHtml = wrapHtml("", backgroundColor, fontColor);
             webView.getEngine().loadContent(initialHtml);
@@ -45,21 +46,24 @@ public class StreamingMarkdownPanel extends JPanel {
         });
     }
 
+
+
     public void appendMarkdown(String markdownFragment) {
         if (!initialized) return;
 
-        Platform.runLater(() -> {
-            Node node = parser.parse(markdownFragment);
-            String html = renderer.render(node);
-            String script = """
-                    var div = document.createElement("div");
-                    div.innerHTML = `%s`;
-                    document.body.appendChild(div);
-                    window.scrollTo(0, document.body.scrollHeight);
-                    """.formatted(escapeHtmlForJs(html));
+        // 累积传入的 Markdown 字符串
+        markdownBuffer.append(markdownFragment).append(" ");
 
-            webView.getEngine().executeScript(script);
-        });
+        Platform.runLater(() -> {
+            // 解析累积的 Markdown 内容
+            Node node = parser.parse(markdownBuffer.toString());
+            String html = renderer.render(node);
+
+            // 重新加载整个页面内容
+            String fullHtml = wrapHtml(html, backgroundColor, fontColor);
+            webView.getEngine().loadContent(fullHtml);
+            });
+
     }
 
     private static String escapeHtmlForJs(String html) {

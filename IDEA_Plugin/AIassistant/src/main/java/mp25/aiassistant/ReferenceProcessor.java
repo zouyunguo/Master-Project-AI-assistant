@@ -118,7 +118,7 @@ public class ReferenceProcessor {
                             promptBuilder.append(")\n");
                             // 局部变量
                             method.findAll(com.github.javaparser.ast.body.VariableDeclarator.class).forEach(var -> {
-                                promptBuilder.append("    Local Var: ")
+                                promptBuilder.append(" Local Var: ")
                                         .append(var.getType()).append(" ").append(var.getName()).append("\n");
                             });
                         });
