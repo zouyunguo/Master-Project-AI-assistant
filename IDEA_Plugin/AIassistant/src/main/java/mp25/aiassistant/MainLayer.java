@@ -234,6 +234,7 @@ public class MainLayer {
         ChatSession currentSession = sessionManager.getActiveSession();
         if (currentSession != null) {
             for (ChatSession.Message message : currentSession.getMessages()) {
+                // todo : alter to replace with StreamingMarkdownPanel
                 JTextArea messageArea = new JTextArea();
                 messageArea.setEditable(false);
                 messageArea.setLineWrap(true);
@@ -319,22 +320,7 @@ public class MainLayer {
                 ReferenceProcessor.InitProjectContext();
                 fullPrompt = ReferenceProcessor.generateFullPrompt() + userInput;
                 System.out.println("Full Prompt: " + fullPrompt);
-                // Create message areas
-                /*JTextArea inputArea = new JTextArea("User: " + userInput);
-                inputArea.setEditable(false);
-                inputArea.setLineWrap(true);
-                inputArea.setWrapStyleWord(true);
-                inputArea.setBackground(new Color(43, 45, 48));
-                inputArea.setMargin(new Insets(0, 0, 25, 25));
-                inputArea.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));
 
-                JTextArea answerArea = new JTextArea("Assistant: ");
-                answerArea.setEditable(false);
-                answerArea.setLineWrap(true);
-                answerArea.setBackground(new Color(60, 63, 65));
-                answerArea.setWrapStyleWord(true);
-                answerArea.setMargin(new Insets(0, 0, 25, 25));
-                answerArea.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));*/
 
 /*
                 JEditorPane inputArea = new JEditorPane();
@@ -360,13 +346,14 @@ public class MainLayer {
                 chatPanel.add(answerArea);*/
                 StreamingMarkdownPanel answerArea = new StreamingMarkdownPanel(700, "#3C3F41", "#FFFFFF");
                 StreamingMarkdownPanel inputArea = new StreamingMarkdownPanel(700, "#2B2D30", "#FFFFFF");
-
-                Platform.runLater(() -> {
+                chatPanel.add(inputArea);
+                chatPanel.add(answerArea);
+               Platform.runLater(() -> {
                     inputArea.appendMarkdown("User: " + userInput);
-                    answerArea.appendMarkdown("Assistant: ");
-                    chatPanel.add(inputArea);
-                    chatPanel.add(answerArea);
+                    answerArea.appendMarkdown("Assistant: \n");
                 });
+
+
 
                 // Update UI
                 sendButton.setEnabled(false);
@@ -390,8 +377,12 @@ public class MainLayer {
                                     // Append response to answer area
                                     responseBuilder.append(aiResponse);
                                     // 获取当前的 HTML 内容
-                                   answerArea.appendMarkdown(aiResponse);
-
+                                    Platform.runLater(() -> {
+                                            // 将新的 Markdown 内容追加到 answerArea
+                                            //answerArea.appendMarkdown(aiResponse);
+                                            // 将 Markdown 转换为 HTML 并更新显示
+                                    answerArea.appendMarkdown(aiResponse);
+                                        });
                                     //answerArea.setText("Assistant: " + responseBuilder.toString());
 /*                                    String currentHtml = answerArea.getText();
                                     String newText = MarkdownUtils.toHtml(responseBuilder.toString());
@@ -407,7 +398,12 @@ public class MainLayer {
                                 });
                             }).thenRun(() -> {
                                 SwingUtilities.invokeLater(() -> {
-
+/*                                    mp25.aiassistant.components.MarkdownBubblePanel inputArea = new mp25.aiassistant.components.MarkdownBubblePanel(
+                                            "User: " + userInput, 700,"#2B2D30", "#FFFFFF");
+                                    mp25.aiassistant.components.MarkdownBubblePanel answerArea = new mp25.aiassistant.components.MarkdownBubblePanel(
+                                            "Assistant: "+responseBuilder.toString(), 700,"#3C3F41", "#FFFFFF");
+                                    chatPanel.add(inputArea);
+                                    chatPanel.add(answerArea);*/
                                     // store AI response in the session manager
                                     System.out.println("AI Response: " + responseBuilder.toString());
 

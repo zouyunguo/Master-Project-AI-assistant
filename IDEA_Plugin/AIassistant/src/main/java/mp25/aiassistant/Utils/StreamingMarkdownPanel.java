@@ -6,6 +6,7 @@ import com.vladsch.flexmark.util.ast.Node;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.Scene;
+import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 
 import javax.swing.*;
@@ -20,7 +21,6 @@ public class StreamingMarkdownPanel extends JPanel {
     private final int preferredWidth;
     private final String backgroundColor;
     private final String fontColor;
-
     private boolean initialized = false;
 
     public StreamingMarkdownPanel(int width, String bgColor, String textColor) {
@@ -31,18 +31,30 @@ public class StreamingMarkdownPanel extends JPanel {
         setLayout(new BorderLayout());
         setOpaque(false);
         add(fxPanel, BorderLayout.CENTER);
-
+        this.setPreferredSize(new Dimension(width, 50)); // 默认高度为300，可以根据需要调整
         initWebView();
     }
 
     private void initWebView() {
         Platform.runLater(() -> {
-            webView= new WebView();
+            webView = new WebView();
             webView.setPrefWidth(preferredWidth);
+            webView.setPrefHeight(50);
+            WebEngine webEngine = webView.getEngine();
             String initialHtml = wrapHtml("", backgroundColor, fontColor);
-            webView.getEngine().loadContent(initialHtml);
+            webEngine.loadContent(initialHtml);
             fxPanel.setScene(new Scene(webView));
             initialized = true;
+
+            webEngine.documentProperty().addListener((observable, oldDoc, newDoc) -> {
+                if (newDoc != null) {
+                    Platform.runLater(() -> {
+                        double contentHeight = webView.getEngine().executeScript("document.body.scrollHeight").hashCode();
+                        SwingUtilities.invokeLater(() -> setPreferredSize(new Dimension(preferredWidth, (int) contentHeight)));
+                        revalidate();
+                    });
+                }
+            });
         });
     }
 
@@ -52,13 +64,13 @@ public class StreamingMarkdownPanel extends JPanel {
         if (!initialized) return;
 
         // 累积传入的 Markdown 字符串
-        markdownBuffer.append(markdownFragment).append(" ");
+        markdownBuffer.append(markdownFragment);
+        System.out.println("added markdown fragment: " + markdownFragment);
 
         Platform.runLater(() -> {
             // 解析累积的 Markdown 内容
             Node node = parser.parse(markdownBuffer.toString());
             String html = renderer.render(node);
-
             // 重新加载整个页面内容
             String fullHtml = wrapHtml(html, backgroundColor, fontColor);
             webView.getEngine().loadContent(fullHtml);
@@ -66,16 +78,6 @@ public class StreamingMarkdownPanel extends JPanel {
 
     }
 
-    private static String escapeHtmlForJs(String html) {
-        return html
-                .replace("\\", "\\\\")
-                .replace("`", "\\`")
-                .replace("$", "\\$")
-                .replace("\n", "\\n")
-                .replace("\r", "")
-                .replace("\"", "\\\"")
-                .replace("'", "\\'");
-    }
 
     private static String wrapHtml(String body, String bgColor, String fontColor) {
         return """
