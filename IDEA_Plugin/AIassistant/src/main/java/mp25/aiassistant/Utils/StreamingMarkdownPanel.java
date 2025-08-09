@@ -81,33 +81,36 @@ public class StreamingMarkdownPanel extends JPanel {
 
     private static String wrapHtml(String body, String bgColor, String fontColor) {
         return """
-                <html>
-                <head>
-                  <style>
-                    html, body {
-                      margin: 0;
-                      padding: 10px;
-                      font-family: Arial, sans-serif;
-                      font-size: 14px;
-                      line-height: 1.4;
-                      background-color: %s;
-                      color: %s;
-                    }
-                    pre {
-                      background-color: #444;
-                      padding: 6px;
-                      border-radius: 4px;
-                      white-space: pre-wrap;
-                    }
-                    code {
-                      background-color: #444;
-                      padding: 2px 4px;
-                      border-radius: 3px;
-                    }
-                  </style>
-                </head>
-                <body>%s</body>
-                </html>
-                """.formatted(bgColor, fontColor, body);
+        <html>
+        <head>
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+          <script>hljs.highlightAll();</script>
+          <style>
+            html, body {
+              margin: 0;
+              padding: 10px;
+              font-family: Arial, sans-serif;
+              font-size: 14px;
+              line-height: 1.4;
+              background-color: %s;
+              color: %s;
+            }
+            pre {
+              background-color: #2B2D30;
+              padding: 6px;
+              border-radius: 4px;
+              white-space: pre-wrap;
+            }
+            code {
+              background-color: #2B2D30;
+              padding: 2px 4px;
+              border-radius: 3px;
+            }
+          </style>
+        </head>
+        <body>%s</body>
+        </html>
+        """.formatted(bgColor, fontColor, body);
     }
 }

@@ -378,9 +378,7 @@ public class MainLayer {
                                     responseBuilder.append(aiResponse);
                                     // 获取当前的 HTML 内容
                                     Platform.runLater(() -> {
-                                            // 将新的 Markdown 内容追加到 answerArea
-                                            //answerArea.appendMarkdown(aiResponse);
-                                            // 将 Markdown 转换为 HTML 并更新显示
+
                                     answerArea.appendMarkdown(aiResponse);
                                         });
                                     //answerArea.setText("Assistant: " + responseBuilder.toString());
