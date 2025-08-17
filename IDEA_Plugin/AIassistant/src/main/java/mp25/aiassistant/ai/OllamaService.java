@@ -1,4 +1,4 @@
-package mp25.aiassistant;
+package mp25.aiassistant.ai;
 
 import java.util.function.Consumer;
 import mp25.aiassistant.chat.ChatSession;

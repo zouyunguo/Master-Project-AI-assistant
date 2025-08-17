@@ -12,6 +12,11 @@ import kotlin.Unit;
 import kotlin.coroutines.Continuation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import mp25.aiassistant.completion.managers.CompletionInlayManager;
+import mp25.aiassistant.completion.services.CodeCompletionService;
+import mp25.aiassistant.completion.handlers.EnterKeyHandler;
+import mp25.aiassistant.completion.handlers.TabKeyHandler;
+import mp25.aiassistant.completion.handlers.EscapeKeyHandler;
 
 public class CompletionPlugin implements ProjectActivity {
     private static boolean initialized = false;

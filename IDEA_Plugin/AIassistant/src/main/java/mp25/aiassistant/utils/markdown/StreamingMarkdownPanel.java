@@ -1,4 +1,4 @@
-package mp25.aiassistant.Utils;
+package mp25.aiassistant.utils.markdown;
 
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;

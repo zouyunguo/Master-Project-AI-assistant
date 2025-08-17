@@ -24,11 +24,11 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="mp25.aiassistant.SideBarWindow" id="AI Assistant"></toolWindow>
+        <toolWindow factoryClass="mp25.aiassistant.ui.SideBarWindow" id="AI Assistant"></toolWindow>
         <postStartupActivity implementation="mp25.aiassistant.completion.CompletionPlugin"/>
 
     </extensions><actions>
-        <action id="mp25.aiassistant.InlineChat" class="mp25.aiassistant.InlineChat" text="Inline Chat">
+        <action id="mp25.aiassistant.InlineChat" class="mp25.aiassistant.ui.dialogs.InlineChat" text="Inline Chat">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl I"/>
         </action>
     </actions>

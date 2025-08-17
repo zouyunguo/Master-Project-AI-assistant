@@ -5,6 +5,8 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.CaretEvent;
 import com.intellij.openapi.editor.event.CaretListener;
 import com.intellij.openapi.project.Project;
+import mp25.aiassistant.completion.managers.CompletionInlayManager;
+import mp25.aiassistant.completion.services.CodeCompletionService;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.Executors;

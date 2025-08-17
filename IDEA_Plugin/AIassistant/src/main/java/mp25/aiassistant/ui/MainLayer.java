@@ -1,13 +1,14 @@
-package mp25.aiassistant;
+package mp25.aiassistant.ui;
 
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
-import mp25.aiassistant.Utils.StreamingMarkdownPanel;
+import mp25.aiassistant.utils.ReferenceProcessor;
+import mp25.aiassistant.utils.markdown.StreamingMarkdownPanel;
 import mp25.aiassistant.chat.ChatSession;
 import mp25.aiassistant.chat.SessionManager;
-import mp25.aiassistant.Utils.MarkdownUtils;
+import mp25.aiassistant.ai.OllamaService;
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;

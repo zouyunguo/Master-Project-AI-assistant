@@ -1,9 +1,6 @@
-package mp25.aiassistant.completion;
+package mp25.aiassistant.completion.services;
 
-import com.github.javaparser.StaticJavaParser;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Node;
-import com.github.javaparser.ast.body.MethodDeclaration;
+
 import com.google.gson.Gson;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
@@ -13,17 +10,12 @@ import com.intellij.openapi.editor.event.CaretListener;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.project.Project;
-import mp25.aiassistant.OllamaService;
-import mp25.aiassistant.ReferenceProcessor;
+import mp25.aiassistant.ai.OllamaService;
+import mp25.aiassistant.utils.ReferenceProcessor;
+import mp25.aiassistant.completion.managers.CompletionInlayManager;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
-import java.io.StringReader;
-import java.net.http.HttpClient;
-import java.time.Duration;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

@@ -1,4 +1,4 @@
-package mp25.aiassistant.completion;
+package mp25.aiassistant.completion.handlers;
 
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.command.WriteCommandAction;
@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.actionSystem.EditorActionHandler;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import mp25.aiassistant.completion.managers.CompletionInlayManager;
 
 public class TabKeyHandler extends EditorActionHandler {
     private final EditorActionHandler originalHandler;

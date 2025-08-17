@@ -1,8 +1,8 @@
-
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.25"
     id("org.jetbrains.intellij") version "1.17.4"
+    id("org.openjfx.javafxplugin") version "0.0.13"
 }
 
 group = "MP25"
@@ -13,18 +13,25 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.javaparser:javaparser-symbol-solver-core:3.25.1")
-    implementation("org.json:json:20240303")
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("org.json:json:20240303");
+    implementation("com.github.javaparser:javaparser-core:3.25.4")
+    implementation("com.vladsch.flexmark:flexmark-all:0.64.0")
+
 }
+
+javafx {
+    version = "20"
+    modules = listOf("javafx.controls", "javafx.fxml", "javafx.web","javafx.swing")
+}
+
 
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-  //  localPath.set("C:\\Program Files\\JetBrains\\IntelliJ IDEA 2024.2.3")
+    localPath.set("C:\\Program Files\\JetBrains\\IntelliJ IDEA 2024.2.3")
 //    localPath.set("/Applications/IntelliJ IDEA.app/Contents")
-        version.set("2024.2.3")
-        type.set("IC") // Target IDE Platform
+    //    version.set("2023.2.6")
+    //    type.set("IC") // Target IDE Platform
 
     plugins.set(listOf(/* Plugin Dependencies */))
 }

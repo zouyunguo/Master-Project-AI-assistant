@@ -1,4 +1,4 @@
-package mp25.aiassistant.completion;
+package mp25.aiassistant.completion.managers;
 
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorCustomElementRenderer;

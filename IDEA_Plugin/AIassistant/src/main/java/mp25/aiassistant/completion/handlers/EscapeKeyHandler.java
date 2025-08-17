@@ -1,4 +1,4 @@
-package mp25.aiassistant.completion;
+package mp25.aiassistant.completion.handlers;
 
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.editor.Caret;
@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.actionSystem.EditorActionHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import mp25.aiassistant.completion.managers.CompletionInlayManager;
 
 public class EscapeKeyHandler extends EditorActionHandler {
     private final EditorActionHandler originalHandler;
