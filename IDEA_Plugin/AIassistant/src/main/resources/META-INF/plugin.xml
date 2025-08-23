@@ -15,6 +15,13 @@
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
     AIassistant plugin is a powerful tool designed to enhance your coding experience by providing intelligent code suggestions, error detection, and debugging assistance. With its advanced machine learning algorithms, AIassistant can analyze your code in real-time, offering context-aware recommendations and helping you write cleaner, more efficient code. Whether you're a beginner or an experienced developer, AIassistant is here to streamline your workflow and boost your productivity.
+    
+    <h3>Extensible Features:</h3>
+    <ul>
+        <li><b>Quick Code Review</b> - Press Ctrl+Shift+R for instant AI-powered code review</li>
+        <li><b>Explain Code</b> - Right-click selected code to get AI explanation</li>
+        <li><b>Optimize Code</b> - Get AI suggestions for code optimization</li>
+    </ul>
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -26,11 +33,41 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow factoryClass="mp25.aiassistant.ui.SideBarWindow" id="AI Assistant"></toolWindow>
         <postStartupActivity implementation="mp25.aiassistant.completion.CompletionPlugin"/>
-
-    </extensions><actions>
+        <postStartupActivity implementation="mp25.aiassistant.core.AIAssistantPlugin"/>
+    </extensions>
+    
+    <actions>
+        <!-- Original Inline Chat action -->
         <action id="mp25.aiassistant.InlineChat" class="mp25.aiassistant.ui.dialogs.InlineChat" text="Inline Chat">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl I"/>
         </action>
+        
+        <!-- Extensible Shortcut Commands -->
+        <action id="mp25.aiassistant.QuickCodeReview" 
+                class="mp25.aiassistant.extensibility.commands.QuickCodeReviewCommand$QuickCodeReviewAction" 
+                text="Quick Code Review" 
+                description="Perform a quick AI-powered code review">
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift R"/>
+        </action>
+        
+        <!-- Extensible Context Menu Items -->
+        <group id="mp25.aiassistant.ContextMenuGroup" text="AI Assistant" description="AI-powered code assistance">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            
+            <action id="mp25.aiassistant.ExplainCode" 
+                    class="mp25.aiassistant.extensibility.menus.ExplainCodeContextMenu$ExplainCodeAction" 
+                    text="Explain Code" 
+                    description="Get AI explanation of the selected code">
+                <add-to-group group-id="mp25.aiassistant.ContextMenuGroup" anchor="first"/>
+            </action>
+            
+            <action id="mp25.aiassistant.OptimizeCode" 
+                    class="mp25.aiassistant.extensibility.menus.OptimizeCodeContextMenu$OptimizeCodeAction" 
+                    text="Optimize Code" 
+                    description="Get AI suggestions for code optimization">
+                <add-to-group group-id="mp25.aiassistant.ContextMenuGroup" anchor="last"/>
+            </action>
+        </group>
     </actions>
 
 </idea-plugin>

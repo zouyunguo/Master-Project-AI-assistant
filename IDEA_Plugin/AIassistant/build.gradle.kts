@@ -16,7 +16,11 @@ dependencies {
     implementation("org.json:json:20240303");
     implementation("com.github.javaparser:javaparser-core:3.25.4")
     implementation("com.vladsch.flexmark:flexmark-all:0.64.0")
-
+    
+    // Test dependencies
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 }
 
 javafx {
@@ -28,8 +32,8 @@ javafx {
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    localPath.set("C:\\Program Files\\JetBrains\\IntelliJ IDEA 2024.2.3")
-//    localPath.set("/Applications/IntelliJ IDEA.app/Contents")
+//    localPath.set("C:\\Program Files\\JetBrains\\IntelliJ IDEA 2024.2.3")
+    localPath.set("/Applications/IntelliJ IDEA.app/Contents")
     //    version.set("2023.2.6")
     //    type.set("IC") // Target IDE Platform
 
