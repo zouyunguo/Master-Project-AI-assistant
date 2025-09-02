@@ -30,6 +30,7 @@ public class CodeCompletionService {
     }
 
     public void requestCompletion(Editor editor, Project project) {
+        System.out.println("Requesting completion...");
         String context = ReferenceProcessor.getContext(editor,CONTEXT_CHARS);
         if ( !context.isEmpty()) {
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -144,7 +145,7 @@ public class CodeCompletionService {
 
             // 同步生成响应
             StringBuilder responseBuilder = new StringBuilder();
-            OllamaService.generateResponse(modelList[0], fullPrompt, responseBuilder::append).get(); // 使用 get() 方法同步获取结果
+            OllamaService.generateResponse(modelList[2], fullPrompt, responseBuilder::append).get(); // 使用 get() 方法同步获取结果
             Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");
             Matcher matcher = pattern.matcher(responseBuilder.toString());
             String codeBlock="";

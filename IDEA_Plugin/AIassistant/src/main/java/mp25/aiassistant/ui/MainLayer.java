@@ -23,7 +23,6 @@ import javafx.application.Platform;
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import com.intellij.icons.AllIcons;
-import org.apache.batik.bridge.Mark;
 
 
 public class MainLayer {
