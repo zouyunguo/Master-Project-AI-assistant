@@ -9,7 +9,9 @@ import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import mp25.aiassistant.completion.managers.CompletionInlayManager;
-
+/**
+ *  key handler for Escape key to clear completion preview
+ */
 public class TabKeyHandler extends EditorActionHandler {
     private final EditorActionHandler originalHandler;
     private final CompletionInlayManager inlayManager;
@@ -21,16 +23,16 @@ public class TabKeyHandler extends EditorActionHandler {
 
     @Override
     protected void doExecute(@NotNull Editor editor, @Nullable Caret caret, DataContext dataContext) {
-        // 如果有活动的补全预览，接受它
+        // If there's an active completion preview, accept it
         if (inlayManager.hasActiveCompletion()) {
             String completion = inlayManager.getCurrentCompletion();
             Project project = editor.getProject();
 
             if (completion != null && project != null) {
-                // 清除预览
+                // Clear preview
                 inlayManager.clearPreview(editor);
 
-                // 插入补全内容
+                // Insert completion content
                 WriteCommandAction.runWriteCommandAction(project, () -> {
                     int offset = editor.getCaretModel().getOffset();
 
@@ -42,7 +44,7 @@ public class TabKeyHandler extends EditorActionHandler {
             }
         }
 
-        // 否则执行原始的Tab功能
+        // Otherwise execute original Tab functionality
         if (originalHandler != null) {
             originalHandler.execute(editor, caret, dataContext);
         }

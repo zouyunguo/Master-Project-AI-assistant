@@ -9,7 +9,10 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-
+/**
+ *  Implementations of a sidebar tool window in IntelliJ IDEA
+ *  This class creates and manages the content of the sidebar window
+ */
 public class SideBarWindow implements ToolWindowFactory {
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
@@ -23,19 +26,5 @@ public class SideBarWindow implements ToolWindowFactory {
         Content content=ContentFactory.getInstance().createContent(panel,"",false);
         toolWindow.getContentManager().addContent(content);
     }
-    // This class is a placeholder for the tool window factory.
-    // You can implement the required methods to create and manage the tool window.
-    // For example, you can create a panel with buttons or other components to interact with the AI assistant.
-    // You can also add listeners to handle user interactions and perform actions based on the input.
 
-    // Example method to create a panel
-    // private JPanel createPanel() {
-    //     JPanel panel = new JPanel();
-    //     JButton button = new JButton("Click me");
-    //     button.addActionListener(e -> {
-    //         // Handle button click
-    //     });
-    //     panel.add(button);
-    //     return panel;
-    // }
 }

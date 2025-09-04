@@ -17,7 +17,9 @@ import mp25.aiassistant.completion.services.CodeCompletionService;
 import mp25.aiassistant.completion.handlers.EnterKeyHandler;
 import mp25.aiassistant.completion.handlers.TabKeyHandler;
 import mp25.aiassistant.completion.handlers.EscapeKeyHandler;
-
+/**
+ *  Main plugin class to initialize code completion features
+ */
 public class CompletionPlugin implements ProjectActivity {
     private static boolean initialized = false;
     private static CompletionInlayManager inlayManager;
@@ -29,19 +31,19 @@ public class CompletionPlugin implements ProjectActivity {
         if (!initialized) {
             initialized = true;
 
-            // 创建共享的管理器
+            // Create shared manager
             inlayManager = new CompletionInlayManager();
             completionService = new CodeCompletionService(inlayManager);
 
-            // 获取EditorActionManager
+            // Get EditorActionManager
             EditorActionManager actionManager = EditorActionManager.getInstance();
 
-            // 替换Enter键处理器
+            // Replace Enter key handler
             EditorActionHandler originalEnterHandler = actionManager.getActionHandler("EditorEnter");
             EnterKeyHandler enterKeyHandler = new EnterKeyHandler(originalEnterHandler, completionService);
             actionManager.setActionHandler("EditorEnter", enterKeyHandler);
 
-            // 替换Tab键处理器
+            // Replace Tab key handler
             EditorActionHandler originalTabHandler = actionManager.getActionHandler("EditorTab");
             TabKeyHandler tabKeyHandler = new TabKeyHandler(originalTabHandler, inlayManager);
             actionManager.setActionHandler("EditorTab", tabKeyHandler);
@@ -50,7 +52,7 @@ public class CompletionPlugin implements ProjectActivity {
             EscapeKeyHandler escapeKeyHandler = new EscapeKeyHandler(originalEscHandler, inlayManager);
             actionManager.setActionHandler("EditorEscape", escapeKeyHandler);
 
-            // 为所有编辑器添加监听器
+            // Add listeners for all editors
             EditorFactory.getInstance().addEditorFactoryListener(new EditorFactoryListener() {
                 @Override
                 public void editorCreated(@NotNull EditorFactoryEvent event) {

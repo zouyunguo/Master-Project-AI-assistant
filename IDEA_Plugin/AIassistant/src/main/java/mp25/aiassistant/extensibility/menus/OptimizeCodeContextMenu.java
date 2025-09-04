@@ -145,23 +145,23 @@ public class OptimizeCodeContextMenu implements IContextMenuItem {
             suggestions.append("File type: ").append(fileExtension).append("\n\n");
             
             if (code.contains("public class")) {
-                suggestions.append("✓ Consider using interfaces for better abstraction\n");
+                suggestions.append("[SUGGESTION] Consider using interfaces for better abstraction\n");
             }
             
             if (code.contains("TODO") || code.contains("FIXME")) {
-                suggestions.append("⚠ Address TODO/FIXME comments for better code quality\n");
+                suggestions.append("[WARNING] Address TODO/FIXME comments for better code quality\n");
             }
             
             if (code.contains("import java.util.*")) {
-                suggestions.append("⚠ Avoid wildcard imports, import specific classes\n");
+                suggestions.append("[WARNING] Avoid wildcard imports, import specific classes\n");
             }
             
             if (code.length() > 500) {
-                suggestions.append("⚠ Consider breaking large classes into smaller ones\n");
+                suggestions.append("[WARNING] Consider breaking large classes into smaller ones\n");
             }
             
             if (code.contains("System.out.println")) {
-                suggestions.append("⚠ Use proper logging framework instead of System.out\n");
+                suggestions.append("[WARNING] Use proper logging framework instead of System.out\n");
             }
             
             suggestions.append("\nThis is a mock optimization. In the full implementation, ");

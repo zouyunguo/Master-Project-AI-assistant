@@ -28,27 +28,30 @@ public class AIAssistantPlugin implements StartupActivity {
      */
     private void initializeExtensibleFeatures() {
         try {
+            // Initialize extensible features system
+            ExtensibleFeatureManager.initialize();
+
             // Register default features
             DefaultExtensibleFeatures.registerDefaultFeatures();
             
             // Log successful initialization
             var manager = ExtensibleFeatureManager.getInstance();
             var counts = manager.getFeatureCounts();
-            System.out.println("✅ Extensible features initialized successfully:");
+            System.out.println("[SUCCESS] Extensible features initialized successfully:");
             System.out.println("   - " + counts.get("shortcutCommands") + " shortcut commands");
             System.out.println("   - " + counts.get("contextMenuItems") + " context menu items");
             
             // Validate features
             var issues = manager.validateFeatures();
             if (!issues.isEmpty()) {
-                System.out.println("⚠️ Feature validation issues found:");
+                System.out.println("[WARNING] Feature validation issues found:");
                 for (String issue : issues) {
                     System.out.println("   - " + issue);
                 }
             }
             
         } catch (Exception e) {
-            System.err.println("❌ Failed to initialize extensible features: " + e.getMessage());
+            System.err.println("[ERROR] Failed to initialize extensible features: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -65,10 +68,10 @@ public class AIAssistantPlugin implements StartupActivity {
             var manager = ExtensibleFeatureManager.getInstance();
             manager.cleanup();
             
-            System.out.println("✅ Extensible features cleaned up successfully");
-            
+            System.out.println("[SUCCESS] Extensible features cleaned up successfully");
+
         } catch (Exception e) {
-            System.err.println("❌ Failed to cleanup extensible features: " + e.getMessage());
+            System.err.println("[ERROR] Failed to cleanup extensible features: " + e.getMessage());
             e.printStackTrace();
         }
     }

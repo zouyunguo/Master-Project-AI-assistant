@@ -10,48 +10,54 @@ import mp25.aiassistant.chat.ChatSession;
 import mp25.aiassistant.chat.SessionManager;
 import mp25.aiassistant.ai.OllamaService;
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-
 import javafx.application.Platform;
-
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import com.intellij.icons.AllIcons;
 
-
+/**
+ * MainLayer
+ * Entry panel for the plugin AFTER removing the privacy / terms screen.
+ * Responsibilities:
+ * 1. Manage chat sessions (create / rename / delete / switch)
+ * 2. Render conversation history for the active session
+ * 3. Provide input area + model selector + reference file attachment
+ * 4. Stream model responses incrementally into markdown panels
+ */
 public class MainLayer {
+    // Root container returned to ToolWindow
     private JPanel MainPanel;
-    private JButton agreeButton;
-    private JButton disagreeButton;
+    // Central body area that switches from (now removed) policy -> chat UI
     private JPanel Mainbody;
-    private JTextPane PolicyText;
+    // Panel containing session list + control buttons
     private JPanel sessionPanel;
+    // List of chat sessions (left side)
     private JBList<ChatSession> sessionList;
+    // Session management buttons
     private JButton newSessionButton;
     private JButton renameSessionButton;
     private JButton deleteSessionButton;
+    // Session manager encapsulates persistence (in-memory for now)
     private final SessionManager sessionManager;
+    // Backing model for session JList
     private DefaultListModel<ChatSession> sessionListModel;
-    private String text = "To provide you with a better and more personalized experience,"
-            + "we collect anonymized usage data, such as feature interactions frequencies,"
-            + "performance metrics, and error reports."
-            + "This information helps us optimize the plugin and fix issues.\n\n"
-            + "Your privacy is important to us—all data is aggregated and cannot be used to identify you."
-            + "You can enable or disable data collection in";
 
-    // Reference tracking
+    // Tracks an optional attached reference file for prompt enrichment
     private File selectedReferenceFile = null;
 
+    /**
+     * Constructor: builds UI programmatically (no .form usage anymore)
+     */
     public MainLayer() {
+        MainPanel = new JPanel(new BorderLayout());
+        Mainbody = new JPanel();
+        Mainbody.setLayout(new BorderLayout());
+        MainPanel.add(Mainbody, BorderLayout.CENTER);
+
         sessionManager = new SessionManager();
         sessionListModel = new DefaultListModel<>();
-        sessionList= new JBList<>(sessionListModel);
+        sessionList = new JBList<>(sessionListModel);
         sessionList.setModel(sessionListModel);
         sessionList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
@@ -65,61 +71,15 @@ public class MainLayer {
             }
         });
 
-
-        setupUI();
-        //setupSessionControls();
+        // Initialize session area + main chat UI directly
+        setupSessionControls();
+        setupChatUI();
     }
 
-    private void setupUI() {
-        StyledDocument doc = PolicyText.getStyledDocument();
-
-        try {
-            agreeButton.setBackground(new Color(46, 110, 246));
-            SimpleAttributeSet normalStyle = new SimpleAttributeSet();
-            StyleConstants.setFontFamily(normalStyle, "Arial");
-            StyleConstants.setFontSize(normalStyle, 16);
-            StyleConstants.setLineSpacing(normalStyle, 10.5f);
-
-            SimpleAttributeSet agreeStyle = new SimpleAttributeSet();
-            StyleConstants.setFontFamily(agreeStyle, "Arial");
-            StyleConstants.setFontSize(agreeStyle, 16);
-            StyleConstants.setForeground(agreeStyle, new Color(40, 132, 46)); // 设置 "Agree" 为绿色
-            StyleConstants.setBold(agreeStyle, true);
-
-            SimpleAttributeSet disagreeStyle = new SimpleAttributeSet();
-            StyleConstants.setFontFamily(disagreeStyle, "Arial");
-            StyleConstants.setFontSize(disagreeStyle, 16);
-            StyleConstants.setForeground(disagreeStyle, new Color(168, 28, 28)); // 设置 "Agree" 为绿色
-            StyleConstants.setBold(disagreeStyle, true);
-
-            SimpleAttributeSet hyperlinkStyle = new SimpleAttributeSet();
-            StyleConstants.setFontFamily(hyperlinkStyle, "Arial");
-            StyleConstants.setFontSize(hyperlinkStyle, 16);
-            StyleConstants.setForeground(hyperlinkStyle,  new Color(46, 110, 246));
-            StyleConstants.setUnderline(hyperlinkStyle, false);
-            StyleConstants.setLineSpacing(hyperlinkStyle, 10.5f);
-            doc.insertString(doc.getLength(), text, normalStyle);
-
-            doc.insertString(doc.getLength(), " Settings", hyperlinkStyle);
-
-            doc.insertString(doc.getLength()," at any time.\n\n", normalStyle);
-            doc.insertString(doc.getLength(), "By Clicking the ", normalStyle);
-            doc.insertString(doc.getLength(), "Agree", agreeStyle); // 设置 "Agree" 样式
-            doc.insertString(doc.getLength(), " button below, you agree to this data collection plan. By Clicking ", normalStyle);
-
-            doc.insertString(doc.getLength(), "Disagree", disagreeStyle); // 设置 "Disagree" 样式
-            doc.insertString(doc.getLength(), ", your usage data will not be collected and tranmitted to us. For more details, please review our", normalStyle);
-            doc.insertString(doc.getLength(), " Privacy Policy", hyperlinkStyle);
-
-        } catch (BadLocationException e) {
-            e.printStackTrace();
-        }
-        agreeButton.addActionListener(e -> setupChatUI());
-        agreeButton.addActionListener(e->setupSessionControls());
-        disagreeButton.addActionListener(e -> setupChatUI());
-        disagreeButton.addActionListener(e -> setupSessionControls());
-    }
-
+    /**
+     * Build buttons + listeners for session CRUD and selection.
+     * Keeps JList model in sync with SessionManager.
+     */
     private void setupSessionControls() {
         newSessionButton = new JButton("New Session");
         renameSessionButton = new JButton("Rename Session");
@@ -169,6 +129,7 @@ public class MainLayer {
             }
         });
 
+        // When user selects another session, rebuild the chat UI
         sessionList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 ChatSession selected = sessionList.getSelectedValue();
@@ -182,6 +143,9 @@ public class MainLayer {
         updateSessionList();
     }
 
+    /**
+     * Refresh the session list model and keep current selection focused.
+     */
     private void updateSessionList() {
         sessionListModel.clear();
         for (ChatSession session : sessionManager.getSessions()) {
@@ -192,31 +156,36 @@ public class MainLayer {
         }
     }
 
+    /**
+     * Reconstruct the main chat layout:
+     *  - session panel (top area)
+     *  - scrollable chat history
+     *  - input panel (bottom)
+     */
     private void setupChatUI() {
         Mainbody.removeAll();
         Mainbody.setLayout(new BorderLayout());
 
-        // Create the panel for the chats
-        JPanel chatPanel = createChatPanel();
+        JPanel chatPanel = createChatPanel(); // Holds rendered messages
         JPanel outerPanel = new JPanel(new BorderLayout());
-        outerPanel.add(chatPanel, BorderLayout.NORTH);
+        outerPanel.add(chatPanel, BorderLayout.NORTH); // NORTH ensures dynamic height shrink-wrap
 
-        // Add session panel to the top
+        // Build session control bar
         sessionPanel = new JPanel();
-        sessionPanel.add(sessionList,BorderLayout.WEST);
+        sessionPanel.add(sessionList, BorderLayout.WEST); // Simple layout (FlowLayout fallback)
         JPanel SessioncontrolPanel = new JPanel();
         SessioncontrolPanel.add(newSessionButton);
         SessioncontrolPanel.add(renameSessionButton);
         SessioncontrolPanel.add(deleteSessionButton);
-        sessionPanel.add(SessioncontrolPanel,BorderLayout.EAST);
+        sessionPanel.add(SessioncontrolPanel, BorderLayout.EAST);
         Mainbody.add(sessionPanel, BorderLayout.NORTH);
 
-
-        // put chatpanel to a scrollable pane
+        // Scroll container for chat history
         JBScrollPane chatScrollPane = new JBScrollPane(outerPanel);
         chatScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         chatScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
+        // Input + controls
         setupInputPanel(chatPanel, chatScrollPane);
 
         Mainbody.add(chatScrollPane, BorderLayout.CENTER);
@@ -224,22 +193,24 @@ public class MainLayer {
         Mainbody.repaint();
     }
 
+    /**
+     * Create a panel that lists existing messages for the active session.
+     * (Legacy simple JTextArea approach; streaming markdown used for new messages.)
+     */
     private JPanel createChatPanel() {
         JPanel chatPanel = new JPanel();
         chatPanel.setLayout(new BoxLayout(chatPanel, BoxLayout.Y_AXIS));
         chatPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         chatPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
 
-        // Load existing messages if there are any
         ChatSession currentSession = sessionManager.getActiveSession();
         if (currentSession != null) {
             for (ChatSession.Message message : currentSession.getMessages()) {
-                // todo : alter to replace with StreamingMarkdownPanel
                 JTextArea messageArea = new JTextArea();
                 messageArea.setEditable(false);
                 messageArea.setLineWrap(true);
                 messageArea.setWrapStyleWord(true);
-                
+
                 if (message.isUser()) {
                     messageArea.setText("User: " + message.getContent());
                     messageArea.setBackground(new Color(43, 45, 48));
@@ -247,7 +218,7 @@ public class MainLayer {
                     messageArea.setText("Assistant: " + message.getContent());
                     messageArea.setBackground(new Color(60, 63, 65));
                 }
-                
+
                 messageArea.setMargin(new Insets(0, 0, 25, 25));
                 messageArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
                 chatPanel.add(messageArea);
@@ -256,6 +227,16 @@ public class MainLayer {
         return chatPanel;
     }
 
+    /**
+     * Build bottom input panel including:
+     *  - Text field for user input
+     *  - Model selector (populated async)
+     *  - Reference file attach button
+     *  - Send button (streams response)
+     * Streaming logic:
+     *  - Immediately adds two StreamingMarkdownPanel components (user + assistant)
+     *  - Disables send during request; re-enables when streaming completes
+     */
     private void setupInputPanel(JPanel chatPanel, JBScrollPane chatScrollPane) {
         JTextField inputField = new JTextField();
         JPanel bottomPanel = new JPanel();
@@ -263,10 +244,10 @@ public class MainLayer {
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BorderLayout());
-        ComboBox<String> modelSelector = new ComboBox<>(new String[]{"none"}); // Default models
+        ComboBox<String> modelSelector = new ComboBox<>(new String[]{"none"});
         modelSelector.setSelectedIndex(0);
 
-        // Get list of models
+        // Async load available models
         CompletableFuture<String[]> modelsFuture = OllamaService.getModels();
         modelsFuture.thenAccept(response -> {
             String[] models = response;
@@ -279,11 +260,10 @@ public class MainLayer {
             return null;
         });
 
-        // Status text
         JLabel statusLabel = new JLabel("");
         statusLabel.setForeground(Color.GRAY);
 
-        // Reference button
+        // Reference file button (adds context to prompt)
         JButton addReferenceButton = new JButton();
         addReferenceButton.setIcon(AllIcons.General.Add);
 
@@ -297,12 +277,11 @@ public class MainLayer {
             if (result == JFileChooser.APPROVE_OPTION) {
                 selectedReferenceFile = fileChooser.getSelectedFile();
                 ReferenceProcessor.addReferenceFile(selectedReferenceFile);
-
                 statusLabel.setText("Reference added: " + selectedReferenceFile.getName());
             }
         });
 
-        // Send button
+        // Send (executes streaming chat completion)
         JButton sendButton = new JButton();
         sendButton.setIcon(AllIcons.Debugger.PromptInput);
 
@@ -312,110 +291,64 @@ public class MainLayer {
         rightPanel.add(sendButton);
         buttonPanel.add(rightPanel, BorderLayout.EAST);
 
-        //callback function for sendButton
         sendButton.addActionListener(e -> {
             String userInput = inputField.getText();
             if (!userInput.isEmpty()) {
                 String fullPrompt = "";
+                // Build project context + user question
                 ReferenceProcessor.InitProjectContext();
                 fullPrompt = ReferenceProcessor.generateFullPrompt() + userInput;
                 System.out.println("Full Prompt: " + fullPrompt);
 
-
-/*
-                JEditorPane inputArea = new JEditorPane();
-                inputArea.setContentType("text/html");
-                inputArea.setEditable(false);
-                inputArea.setText("<html><body style='font-family: Arial; color: #FFFFFF; background-color: #2B2D30; white-space: normal；'>"
-                        +  MarkdownUtils.toHtml("User: " +userInput) + "</body></html>");
-                inputArea.setBackground(new Color(43, 45, 48));
-                inputArea.setMargin(new Insets(0, 0, 25, 25));
-
-                inputArea.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
-
-                JEditorPane answerArea = new JEditorPane();
-                answerArea.setContentType("text/html");
-                answerArea.setEditable(false);
-              answerArea.setText("<html><body style='font-family: Arial;  white-space: normal; '>"
-                        + "</body></html>");
-
-                answerArea.setBackground(new Color(60, 63, 65));
-                answerArea.setMargin(new Insets(0, 0, 25, 25));
-                answerArea.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
-                chatPanel.add(inputArea);
-                chatPanel.add(answerArea);*/
+                // Two streaming panels: one for user, one for assistant streaming reply
                 StreamingMarkdownPanel answerArea = new StreamingMarkdownPanel(700, "#3C3F41", "#FFFFFF");
                 StreamingMarkdownPanel inputArea = new StreamingMarkdownPanel(700, "#2B2D30", "#FFFFFF");
                 chatPanel.add(inputArea);
                 chatPanel.add(answerArea);
-               Platform.runLater(() -> {
+                Platform.runLater(() -> {
                     inputArea.appendMarkdown("User: " + userInput);
                     answerArea.appendMarkdown("Assistant: \n");
                 });
 
-
-
-                // Update UI
                 sendButton.setEnabled(false);
                 statusLabel.setText("Generating response...");
 
-                // Add user message to session manager
                 ChatSession currentSession = sessionManager.getActiveSession();
                 if (currentSession != null) {
                     currentSession.addMessage(userInput, true);
 
-                    // Call Ollama API
                     String selectedModel = (String) modelSelector.getSelectedItem();
                     StringBuilder responseBuilder = new StringBuilder();
-                    
+
+                    // Streaming callback: append chunks as they arrive
                     OllamaService.chatResponse(
                             selectedModel,
                             fullPrompt,
                             currentSession,
                             aiResponse -> {
                                 SwingUtilities.invokeLater(() -> {
-                                    // Append response to answer area
                                     responseBuilder.append(aiResponse);
-                                    // 获取当前的 HTML 内容
                                     Platform.runLater(() -> {
-
-                                    answerArea.appendMarkdown(aiResponse);
-                                        });
-                                    //answerArea.setText("Assistant: " + responseBuilder.toString());
-/*                                    String currentHtml = answerArea.getText();
-                                    String newText = MarkdownUtils.toHtml(responseBuilder.toString());
-                                    String updatedHtml = currentHtml.replaceAll("(?s)(<body.*?>).*?(</body>)", "$1" + newText + "$2");
-                                    answerArea.setText(updatedHtml);
-                                    chatPanel.revalidate();
-                                    chatPanel.repaint();*/
-
+                                        answerArea.appendMarkdown(aiResponse);
+                                    });
+                                    // Auto-scroll to bottom
                                     SwingUtilities.invokeLater(() -> {
                                         JScrollBar verticalBar = chatScrollPane.getVerticalScrollBar();
                                         verticalBar.setValue(verticalBar.getMaximum());
                                     });
                                 });
                             }).thenRun(() -> {
+                                // Completion: persist assistant message + reset state
                                 SwingUtilities.invokeLater(() -> {
-/*                                    mp25.aiassistant.components.MarkdownBubblePanel inputArea = new mp25.aiassistant.components.MarkdownBubblePanel(
-                                            "User: " + userInput, 700,"#2B2D30", "#FFFFFF");
-                                    mp25.aiassistant.components.MarkdownBubblePanel answerArea = new mp25.aiassistant.components.MarkdownBubblePanel(
-                                            "Assistant: "+responseBuilder.toString(), 700,"#3C3F41", "#FFFFFF");
-                                    chatPanel.add(inputArea);
-                                    chatPanel.add(answerArea);*/
-                                    // store AI response in the session manager
                                     System.out.println("AI Response: " + responseBuilder.toString());
-
                                     currentSession.addMessage(responseBuilder.toString(), false);
                                     sendButton.setEnabled(true);
                                     statusLabel.setText("");
                                     selectedReferenceFile = null;
-
-
                                 });
                             }).exceptionally(ex -> {
+                                // Error path: re-enable send + show lightweight status
                                 SwingUtilities.invokeLater(() -> {
-                                    //answerArea.setText("Assistant: Error: " + ex.getMessage());
-                                   // chatPanel.add(MarkdownUtils.createMarkdownComponent("Error: " + ex.getMessage()));
                                     sendButton.setEnabled(true);
                                     statusLabel.setText("Error occurred");
                                 });
@@ -432,16 +365,18 @@ public class MainLayer {
         Mainbody.add(bottomPanel, BorderLayout.SOUTH);
     }
 
+    /**
+     * Rebuild chat UI for newly selected session (simple refresh strategy).
+     */
     private void updateChatDisplay() {
         setupChatUI();
     }
 
+    /**
+     * Exposed to ToolWindow factory for embedding.
+     */
     public JPanel getMainPanel() {
         return MainPanel;
     }
-
-    private void createUIComponents() {
-        MainPanel = new JPanel();
-        MainPanel.setLayout(new BorderLayout());
-    }
 }
+

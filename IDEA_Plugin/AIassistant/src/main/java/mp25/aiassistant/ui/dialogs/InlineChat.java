@@ -21,7 +21,9 @@ import java.awt.event.ActionListener;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+/**
+ *  Inline chat input box for code generation
+ */
 public class InlineChat extends AnAction {
     JPanel inputPanel = new JPanel(new BorderLayout());
     JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -37,7 +39,7 @@ public class InlineChat extends AnAction {
     public void actionPerformed(AnActionEvent e) {
         inputPanel.add(inputField, BorderLayout.NORTH);
         sendButton.setIcon(AllIcons.Debugger.PromptInput);
-        // 模型选择器
+        // Model selector
 
         modelSelector.setSelectedIndex(0);
         //get list of models available from OllamaService.getModels()
@@ -63,11 +65,11 @@ public class InlineChat extends AnAction {
         rightPanel.add(sendButton);
         Editor editor = e.getData(CommonDataKeys.EDITOR);
         if (editor == null) return;
-        // 获取光标位置
+        // Get cursor position
         CaretModel caretModel = editor.getCaretModel();
         LogicalPosition caretPos = caretModel.getLogicalPosition();
 
-        // 创建悬浮输入框
+        // Create floating input box
         createInputPopup(editor, caretPos).showInBestPositionFor(editor);
     }
 
@@ -94,38 +96,38 @@ public class InlineChat extends AnAction {
 
                 System.out.println("Full Prompt: " + fullPrompt);
                 if (!userInput.isEmpty()) {
-                    // 禁用按钮以防止重复点击
+                    // Disable button to prevent duplicate clicks
                     sendButton.setEnabled(false);
                     String selectedModel = (String) modelSelector.getSelectedItem();
                     boolean onThinkFinished = false;
-                    // 调用 OllamaService.generateResponse
+                    // Call OllamaService.generateResponse
                     OllamaService.generateResponse(selectedModel, fullPrompt, responseLine -> {
-                        //对responseLine进行处理，去除以<thinking>和</thinking>标签包裹的思考内容
+                        // Process responseLine, remove thinking content wrapped in <thinking> and </thinking> tags
                         System.out.println("Response: " + responseLine);
                         Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");
                         Matcher matcher = pattern.matcher(responseLine);
                         String codeBlock="";
                         if (matcher.find()) {
                              codeBlock = matcher.group(1);
-                            // codeBlock 就是被 ``` 包裹的内容
+                            // codeBlock is the content wrapped by ```
                         }
                         final String finalCodeBlock = codeBlock;
-                        // 在事件调度线程中更新 UI
+                        // Update UI in event dispatch thread
                         ApplicationManager.getApplication().invokeLater(() -> {
                             WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
-                                // 获取 Editor 的 Document 对象
+                                // Get Editor's Document object
 
-                                // 在光标位置插入返回结果
+                                // Insert return result at cursor position
                                 document.insertString(offset+Chatoffset, finalCodeBlock);
                                 Chatoffset+= finalCodeBlock.length();
-                                // 关闭弹出窗口
+                                // Close popup window
                                 popup.cancel();
 
                                 sendButton.setEnabled(true);
                             });
                         });
                     }).exceptionally(ex -> {
-                        // 处理异常
+                        // Handle exceptions
                         SwingUtilities.invokeLater(() -> {
                             System.out.println("Error: " + ex.getMessage());
                             sendButton.setEnabled(true);
@@ -133,14 +135,12 @@ public class InlineChat extends AnAction {
                         return null;
                     });
 
-                    // 清空输入框
+                    // Clear input field
                     inputField.setText("");
                 }
             }
         });
-        // 创建悬浮框
+        // Create floating box
         return popup;
     }
 }
-
-

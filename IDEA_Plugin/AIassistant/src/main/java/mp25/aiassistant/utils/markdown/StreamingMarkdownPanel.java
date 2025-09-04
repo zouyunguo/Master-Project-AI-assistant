@@ -31,7 +31,7 @@ public class StreamingMarkdownPanel extends JPanel {
         setLayout(new BorderLayout());
         setOpaque(false);
         add(fxPanel, BorderLayout.CENTER);
-        this.setPreferredSize(new Dimension(width, 50)); // 默认高度为300，可以根据需要调整
+        this.setPreferredSize(new Dimension(width, 50)); // Default height is 50, can be adjusted as needed
         initWebView();
     }
 
@@ -63,15 +63,15 @@ public class StreamingMarkdownPanel extends JPanel {
     public void appendMarkdown(String markdownFragment) {
         if (!initialized) return;
 
-        // 累积传入的 Markdown 字符串
+        // Accumulate incoming Markdown strings
         markdownBuffer.append(markdownFragment);
         System.out.println("added markdown fragment: " + markdownFragment);
 
         Platform.runLater(() -> {
-            // 解析累积的 Markdown 内容
+            // Parse accumulated Markdown content
             Node node = parser.parse(markdownBuffer.toString());
             String html = renderer.render(node);
-            // 重新加载整个页面内容
+            // Reload entire page content
             String fullHtml = wrapHtml(html, backgroundColor, fontColor);
             webView.getEngine().loadContent(fullHtml);
             });

@@ -27,6 +27,17 @@ public class ExtensibleFeatureManager {
     private ExtensibleFeatureManager() {}
     
     /**
+     * Initialize the feature manager
+     * This method is called during plugin startup
+     */
+    public static synchronized void initialize() {
+        if (instance == null) {
+            instance = new ExtensibleFeatureManager();
+            LOG.info("ExtensibleFeatureManager initialized successfully");
+        }
+    }
+
+    /**
      * Get the singleton instance
      */
     public static synchronized ExtensibleFeatureManager getInstance() {

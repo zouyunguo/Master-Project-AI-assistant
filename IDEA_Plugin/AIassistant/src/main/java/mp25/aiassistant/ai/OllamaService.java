@@ -35,7 +35,7 @@ public class OllamaService {
                 connection.setRequestProperty("Content-Type", "application/json");
                 connection.setDoOutput(true);
 
-                // 构造 messages 数组
+                // Construct messages array
                 JSONArray messages = new JSONArray();
                 session.getMessages().forEach(msg -> {
                     JSONObject messageObj = new JSONObject();
@@ -44,7 +44,7 @@ public class OllamaService {
                     messages.put(messageObj);
                 });
 
-                // 添加当前用户新消息
+                // Add current user new message
                 JSONObject currentUserMsg = new JSONObject();
                 currentUserMsg.put("role", "user");
                 currentUserMsg.put("content", prompt);

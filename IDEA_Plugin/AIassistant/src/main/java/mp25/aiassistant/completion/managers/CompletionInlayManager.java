@@ -15,7 +15,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-
+/**
+ *  Manager for handling completion preview inlays
+ */
 public class CompletionInlayManager {
     private final List<Inlay<?>> activeInlays = new ArrayList<>();
     private String currentCompletion = null;
@@ -35,19 +37,8 @@ public class CompletionInlayManager {
         InlayModel inlayModel = editor.getInlayModel();
         String[] lines = completion.split("\n", -1);
 
-        // 第一行显示在当前行的inline位置
-/*        if (lines.length > 0 && !lines[0].isEmpty()) {
-            Inlay<?> inlay = inlayModel.addInlineElement(
-                    completionOffset,
-                    new CompletionRenderer(lines[0])
-            );
-            if (inlay != null) {
-                activeInlays.add(inlay);
-            }
 
-        }*/
-
-        // 其余行显示为block elements
+        // Other lines display as block elements
         for (int i = 0; i < lines.length; i++) {
             Inlay<?> inlay = inlayModel.addBlockElement(
                     completionOffset,
@@ -82,7 +73,7 @@ public class CompletionInlayManager {
         return currentCompletion != null && !activeInlays.isEmpty();
     }
 
-    // 自定义渲染器，用于显示灰色文本
+    // Custom renderer for displaying gray text
     private static class CompletionRenderer implements EditorCustomElementRenderer {
         private final String text;
 
@@ -110,7 +101,7 @@ public class CompletionInlayManager {
         }
 
         private Color getGrayColor() {
-            // 尝试从编辑器配色方案中获取合适的灰色
+            // Try to get appropriate gray color from editor color scheme
             TextAttributes attributes = EditorColorsManager.getInstance()
                     .getGlobalScheme()
                     .getAttributes(EditorColors.FOLDED_TEXT_ATTRIBUTES);
@@ -119,7 +110,7 @@ public class CompletionInlayManager {
                 return attributes.getForegroundColor();
             }
 
-            // 使用半透明灰色，类似GitHub Copilot的效果
+            // Use semi-transparent gray, similar to GitHub Copilot effect
             boolean isDarkTheme = JBColor.isBright();
             if (isDarkTheme) {
                 return new JBColor(new Color(150, 150, 150), new Color(100, 100, 100));

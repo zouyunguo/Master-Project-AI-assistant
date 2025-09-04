@@ -7,7 +7,9 @@ import com.intellij.openapi.editor.actionSystem.EditorActionHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import mp25.aiassistant.completion.managers.CompletionInlayManager;
-
+/**
+ *  Key handler for Escape key to clear completion preview
+ */
 public class EscapeKeyHandler extends EditorActionHandler {
     private final EditorActionHandler originalHandler;
     private final CompletionInlayManager inlayManager;
@@ -19,17 +21,17 @@ public class EscapeKeyHandler extends EditorActionHandler {
 
     @Override
     protected void doExecute(@NotNull Editor editor, @Nullable Caret caret, DataContext dataContext) {
-        // 如果有活动的补全预览，清除它
+        // If there's an active completion preview, clear it
         if (inlayManager.hasActiveCompletion()) {
             inlayManager.clearPreview(editor);
-            //保证 IDE 状态一致，仍然执行原始处理器
+            // To ensure IDE state consistency, still execute original handler
             if (originalHandler != null) {
                 originalHandler.execute(editor, caret, dataContext);
             }
             return;
         }
 
-        // 否则执行原始的ESC功能
+        // Otherwise execute original ESC functionality
         if (originalHandler != null) {
             originalHandler.execute(editor, caret, dataContext);
         }

@@ -110,17 +110,17 @@ public class QuickCodeReviewCommand implements IShortcutCommand {
             review.append("Code Review Results:\n\n");
             
             if (code.length() > 100) {
-                review.append("✓ Code length is reasonable\n");
+                review.append("[OK] Code length is reasonable\n");
             } else {
-                review.append("⚠ Code might be too short for meaningful review\n");
+                review.append("[WARNING] Code might be too short for meaningful review\n");
             }
             
             if (code.contains("TODO") || code.contains("FIXME")) {
-                review.append("⚠ Contains TODO/FIXME comments\n");
+                review.append("[WARNING] Contains TODO/FIXME comments\n");
             }
             
             if (code.contains("public class") || code.contains("public interface")) {
-                review.append("✓ Good use of public modifiers\n");
+                review.append("[OK] Good use of public modifiers\n");
             }
             
             review.append("\nThis is a mock review. In the full implementation, ");

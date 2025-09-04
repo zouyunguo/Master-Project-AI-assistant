@@ -9,7 +9,9 @@ import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import mp25.aiassistant.completion.services.CodeCompletionService;
-
+/**
+ *  Key handler for Enter key to trigger code completion
+ */
 public class EnterKeyHandler extends EditorActionHandler {
     private final EditorActionHandler originalHandler;
     private final CodeCompletionService completionService;
@@ -21,15 +23,15 @@ public class EnterKeyHandler extends EditorActionHandler {
 
     @Override
     protected void doExecute(@NotNull Editor editor, @Nullable Caret caret, DataContext dataContext) {
-        // 先执行原始的回车操作
+        // Execute original enter operation first
         if (originalHandler != null) {
             originalHandler.execute(editor, caret, dataContext);
         }
 
-        // 然后触发代码补全
+        // Then trigger code completion
         Project project = editor.getProject();
         if (project != null && !project.isDisposed()) {
-            // 延迟一点执行，确保回车已经插入
+            // Delay execution a bit to ensure enter has been inserted
             ApplicationManager.getApplication().invokeLater(() -> {
                 completionService.requestCompletion(editor, project);
 

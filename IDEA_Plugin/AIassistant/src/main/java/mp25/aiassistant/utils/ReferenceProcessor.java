@@ -29,7 +29,7 @@ public class ReferenceProcessor {
     private static List<File> referenceFiles = new ArrayList<>();
     private static List<File> javaFiles = new ArrayList<>();
     private static List<File> otherFiles = new ArrayList<>();
-    // private final Project project;
+    // private final project;
 
     public ReferenceProcessor() {
 
@@ -117,14 +117,14 @@ public class ReferenceProcessor {
                             cls.getImplementedTypes().forEach(impl -> promptBuilder.append(impl.getName()).append(" "));
                             promptBuilder.append("\n");
                         }
-                        // 类字段
+                        // Class fields
                         cls.getFields().forEach(field -> {
                             field.getVariables().forEach(var -> {
                                 promptBuilder.append("  Field: ")
                                         .append(var.getType()).append(" ").append(var.getName()).append("\n");
                             });
                         });
-                        // 方法签名和局部变量
+                        // Method signatures and local variables
                         cls.getMethods().forEach(method -> {
                             promptBuilder.append("  Method: ")
                                     .append(method.getType()).append(" ")
@@ -133,10 +133,10 @@ public class ReferenceProcessor {
                                 promptBuilder.append(param.getType()).append(" ").append(param.getName()).append(", ");
                             });
                             if (!method.getParameters().isEmpty()) {
-                                promptBuilder.setLength(promptBuilder.length() - 2); // 去掉最后的逗号
+                                promptBuilder.setLength(promptBuilder.length() - 2); // Remove trailing comma
                             }
                             promptBuilder.append(")\n");
-                            // 局部变量
+                            // Local variables
                             method.findAll(com.github.javaparser.ast.body.VariableDeclarator.class).forEach(var -> {
                                 promptBuilder.append(" Local Var: ")
                                         .append(var.getType()).append(" ").append(var.getName()).append("\n");
@@ -178,11 +178,11 @@ public class ReferenceProcessor {
     public static void InitProjectContext() {
         Project[] openProjects = ProjectManager.getInstance().getOpenProjects();
         if (openProjects.length > 0) {
-            Project project = openProjects[0]; // 返回第一个打开的项目
+            Project project = openProjects[0]; // Return the first open project
             if (project != null) {
                 javaFiles.clear();
                 otherFiles.clear();
-                getFilesByDir(project.getBasePath()); // 获取项目的根目录
+                getFilesByDir(project.getBasePath()); // Get project root directory
             } else {
                 throw new IllegalStateException("No open project found.");
             }
@@ -254,7 +254,7 @@ public class ReferenceProcessor {
 
         fullPrompt.append("In addition, you will receive reference files that is manually added by users that may contain additional information or context in below.\n");
         fullPrompt.append(generateReferenceFilePrompt());
-        fullPrompt.append("Given the above context information, please response only in MarkDown texts which only contains the information relevant to answer user's questions, the above information is only for your reference, please do not respond them, only respond to the following question given by the user: \n");
+       // fullPrompt.append("Given the above context information, please response only in MarkDown texts which only contains the information relevant to answer user's questions, the above information is only for your reference, please do not respond them, only respond to the following question given by the user: \n");
 
         return fullPrompt.toString();
     }
