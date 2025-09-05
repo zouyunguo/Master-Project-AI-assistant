@@ -87,7 +87,7 @@ public class CodeCompletionService {
 
             // Synchronously generate response
             StringBuilder responseBuilder = new StringBuilder();
-            OllamaService.generateResponse(modelList[2], fullPrompt, responseBuilder::append).get(); // Use get() method to synchronously get result
+            OllamaService.generateResponse(modelList[0], fullPrompt, responseBuilder::append).get(); // Use get() method to synchronously get result
             Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");
             Matcher matcher = pattern.matcher(responseBuilder.toString());
             String codeBlock="";
