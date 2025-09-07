@@ -246,14 +246,17 @@ public class ReferenceProcessor {
     public static String generateFullPrompt() {
         StringBuilder fullPrompt = new StringBuilder();
         fullPrompt.append("You are an AI assistant that helps developers understand and work with code.\n");
-        fullPrompt.append("You will be provided with reference files of a project.\n");
+
         
         if (!javaFiles.isEmpty() || !otherFiles.isEmpty()) {
+            fullPrompt.append("You will be provided with reference files of a project.\n");
             fullPrompt.append(parseProjectSourceFiles());
         }
-
-        fullPrompt.append("In addition, you will receive reference files that is manually added by users that may contain additional information or context in below.\n");
-        fullPrompt.append(generateReferenceFilePrompt());
+        if(!referenceFiles.isEmpty()){
+            fullPrompt.append("In addition, you will receive reference files that is manually added by users that may contain additional information or context in below.\n");
+            fullPrompt.append(generateReferenceFilePrompt());
+        }
+        fullPrompt.append("\nPlease give your response based on the user's input, if the user's input seems irrelevant to the context above, then only consider user's input : ");
        // fullPrompt.append("Given the above context information, please response only in MarkDown texts which only contains the information relevant to answer user's questions, the above information is only for your reference, please do not respond them, only respond to the following question given by the user: \n");
 
         return fullPrompt.toString();

@@ -10,9 +10,9 @@ import com.intellij.openapi.editor.*;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.openapi.util.TextRange;
-import mp25.aiassistant.ai.OllamaService;
+import mp25.aiassistant.state.ModelSelectionManager;
 import mp25.aiassistant.utils.ReferenceProcessor;
+import mp25.aiassistant.ai.ModelServiceProvider;
 
 import javax.swing.*;
 import java.awt.*;
@@ -42,8 +42,8 @@ public class InlineChat extends AnAction {
         // Model selector
 
         modelSelector.setSelectedIndex(0);
-        //get list of models available from OllamaService.getModels()
-        CompletableFuture<String[]> modelsFuture = OllamaService.getModels();
+        //get list of models available from ModelServiceProvider.get().getModels()
+        CompletableFuture<String[]> modelsFuture = ModelServiceProvider.get().getModels();
         modelsFuture.thenAccept(response -> {
             // Parse the response and return an array of model names
             String[] models = response;
@@ -51,12 +51,26 @@ public class InlineChat extends AnAction {
                 models[i] = models[i].trim(); // Clean up whitespace
             }
             modelSelector.setModel(new DefaultComboBoxModel<>(models));
+            // Set default global selected model to first available
+            if (models.length > 0) {
+                String first = models[0];
+                ModelSelectionManager.getInstance().setSelectedModel(first);
+                SwingUtilities.invokeLater(() -> modelSelector.setSelectedItem(first));
+            }
         }).exceptionally(ex -> {
             // Handle errors
             SwingUtilities.invokeLater(() -> {
                 System.out.println("Error fetching models: " + ex.getMessage());
             });
             return null;
+        });
+
+        // Keep global state in sync when user changes model
+        modelSelector.addActionListener(evt -> {
+            Object sel = modelSelector.getSelectedItem();
+            if (sel != null) {
+                ModelSelectionManager.getInstance().setSelectedModel(sel.toString());
+            }
         });
 
 
@@ -99,9 +113,13 @@ public class InlineChat extends AnAction {
                     // Disable button to prevent duplicate clicks
                     sendButton.setEnabled(false);
                     String selectedModel = (String) modelSelector.getSelectedItem();
+                    // Sync global state before sending
+                    if (selectedModel != null) {
+                        ModelSelectionManager.getInstance().setSelectedModel(selectedModel);
+                    }
                     boolean onThinkFinished = false;
-                    // Call OllamaService.generateResponse
-                    OllamaService.generateResponse(selectedModel, fullPrompt, responseLine -> {
+                    // Call ModelServiceProvider.generateResponse
+                    ModelServiceProvider.get().generateResponse(selectedModel, fullPrompt, responseLine -> {
                         // Process responseLine, remove thinking content wrapped in <thinking> and </thinking> tags
                         System.out.println("Response: " + responseLine);
                         Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");

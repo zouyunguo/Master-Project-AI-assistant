@@ -10,13 +10,21 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  * Service for communicating with Ollama API
  */
-public class OllamaService {
+public class OllamaService implements ModelService {
     private static final String BASE_URL = "http://localhost:11434/";
+
+    // Singleton instance to support interface-based usage
+    private static final OllamaService INSTANCE = new OllamaService();
+
+    public static OllamaService getInstance() {
+        return INSTANCE;
+    }
+
+    // ================= ModelService instance methods =================
 
     /**
      * Send prompt to the Ollama API asynchronously with session context
@@ -26,7 +34,8 @@ public class OllamaService {
      * @param session The chat session containing context
      * @return CompletableFuture with the response string
      */
-    public static CompletableFuture<Void> chatResponse(String model, String prompt, ChatSession session, Consumer<String> onResponse) {
+    @Override
+    public CompletableFuture<Void> chatResponse(String model, String prompt, ChatSession session, Consumer<String> onResponse) {
         return CompletableFuture.runAsync(() -> {
             try {
                 URL url = new URL(BASE_URL + "api/chat");
@@ -93,7 +102,8 @@ public class OllamaService {
      * @param prompt The user's prompt
      * @return CompletableFuture with the response string
      */
-    public static CompletableFuture<Void> generateResponse(String model, String prompt, Consumer<String> onResponse) {
+    @Override
+    public CompletableFuture<Void> generateResponse(String model, String prompt, Consumer<String> onResponse) {
         return CompletableFuture.runAsync(() -> {
             try {
                 URL url = new URL(BASE_URL+"api/generate");
@@ -148,7 +158,8 @@ public class OllamaService {
      *
      * @return CompletableFuture with array of model names
      */
-    public static CompletableFuture<String[]> getModels() {
+    @Override
+    public CompletableFuture<String[]> getModels() {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 URL url = new URL(BASE_URL + "api/tags");
@@ -187,4 +198,4 @@ public class OllamaService {
              }
          });
      }
-    }
+}

@@ -1,19 +1,18 @@
 package mp25.aiassistant.completion.services;
 
 
-import com.google.gson.Gson;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.CaretEvent;
 import com.intellij.openapi.editor.event.CaretListener;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.project.Project;
-import mp25.aiassistant.ai.OllamaService;
 import mp25.aiassistant.utils.ReferenceProcessor;
 import mp25.aiassistant.completion.managers.CompletionInlayManager;
 import org.jetbrains.annotations.NotNull;
+import mp25.aiassistant.state.ModelSelectionManager;
+import mp25.aiassistant.ai.ModelServiceProvider;
 
 
 import java.util.regex.Matcher;
@@ -32,7 +31,6 @@ public class CodeCompletionService {
     }
 
     public void requestCompletion(Editor editor, Project project) {
-        System.out.println("Requesting completion...");
         String context = ReferenceProcessor.getContext(editor,CONTEXT_CHARS);
         if ( !context.isEmpty()) {
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -69,16 +67,26 @@ public class CodeCompletionService {
     }
 
     /**
-     * Call Ollama local model to generate completion
+     * Call model service to generate completion
      */
     private String getCompletionFromOllama(String context) {
         try {
             // Get model list
-            String[] models = OllamaService.getModels().get(); // Use get() method to synchronously get result
+            String[] models = ModelServiceProvider.get().getModels().get(); // synchronous get
             for (int i = 0; i < models.length; i++) {
                 models[i] = models[i].trim(); // Clean whitespace
             }
             modelList = models;
+
+            // Resolve selected model from global state, fallback to first available
+            String selectedModel = ModelSelectionManager.getInstance().getSelectedModel();
+            if (selectedModel == null || selectedModel.isEmpty()) {
+                selectedModel = models.length > 0 ? models[0] : "";
+            }
+            if (selectedModel == null || selectedModel.isEmpty()) {
+                System.out.println("No model available to generate completion.");
+                return "";
+            }
 
             // Build complete prompt
             String fullPrompt = "You are a AI agent aiming to provide code completion function, your task is " +
@@ -87,8 +95,8 @@ public class CodeCompletionService {
 
             // Synchronously generate response
             StringBuilder responseBuilder = new StringBuilder();
-            OllamaService.generateResponse(modelList[0], fullPrompt, responseBuilder::append).get(); // Use get() method to synchronously get result
-            Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```");
+            ModelServiceProvider.get().generateResponse(selectedModel, fullPrompt, responseBuilder::append).get();
+            Pattern pattern = Pattern.compile("```[\\s\\S]*?\\n([\\s\\S]*?)\\n```" );
             Matcher matcher = pattern.matcher(responseBuilder.toString());
             String codeBlock="";
             if (matcher.find()) {

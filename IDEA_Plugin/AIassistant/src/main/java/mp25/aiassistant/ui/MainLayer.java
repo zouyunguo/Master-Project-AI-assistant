@@ -8,13 +8,14 @@ import mp25.aiassistant.utils.ReferenceProcessor;
 import mp25.aiassistant.utils.markdown.StreamingMarkdownPanel;
 import mp25.aiassistant.chat.ChatSession;
 import mp25.aiassistant.chat.SessionManager;
-import mp25.aiassistant.ai.OllamaService;
+import mp25.aiassistant.state.ModelSelectionManager;
 import javax.swing.*;
 import java.awt.*;
 import javafx.application.Platform;
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import com.intellij.icons.AllIcons;
+import mp25.aiassistant.ai.ModelServiceProvider;
 
 /**
  * MainLayer
@@ -195,7 +196,7 @@ public class MainLayer {
 
     /**
      * Create a panel that lists existing messages for the active session.
-     * (Legacy simple JTextArea approach; streaming markdown used for new messages.)
+     * (
      */
     private JPanel createChatPanel() {
         JPanel chatPanel = new JPanel();
@@ -248,16 +249,31 @@ public class MainLayer {
         modelSelector.setSelectedIndex(0);
 
         // Async load available models
-        CompletableFuture<String[]> modelsFuture = OllamaService.getModels();
+        CompletableFuture<String[]> modelsFuture = ModelServiceProvider.get().getModels();
         modelsFuture.thenAccept(response -> {
             String[] models = response;
             for (int i = 0; i < models.length; i++) {
                 models[i] = models[i].trim();
             }
             modelSelector.setModel(new DefaultComboBoxModel<>(models));
+            // Update global selected model with first available by default
+            if (models.length > 0) {
+                String first = models[0];
+                ModelSelectionManager.getInstance().setSelectedModel(first);
+                // Ensure ComboBox reflects selection
+                SwingUtilities.invokeLater(() -> modelSelector.setSelectedItem(first));
+            }
         }).exceptionally(ex -> {
             System.out.println("Error fetching models: " + ex.getMessage());
             return null;
+        });
+
+        // Keep global state in sync when user changes model
+        modelSelector.addActionListener(evt -> {
+            Object sel = modelSelector.getSelectedItem();
+            if (sel != null) {
+                ModelSelectionManager.getInstance().setSelectedModel(sel.toString());
+            }
         });
 
         JLabel statusLabel = new JLabel("");
@@ -318,10 +334,14 @@ public class MainLayer {
                     currentSession.addMessage(userInput, true);
 
                     String selectedModel = (String) modelSelector.getSelectedItem();
+                    // Sync global state before sending
+                    if (selectedModel != null) {
+                        ModelSelectionManager.getInstance().setSelectedModel(selectedModel);
+                    }
                     StringBuilder responseBuilder = new StringBuilder();
 
                     // Streaming callback: append chunks as they arrive
-                    OllamaService.chatResponse(
+                    ModelServiceProvider.get().chatResponse(
                             selectedModel,
                             fullPrompt,
                             currentSession,
@@ -379,4 +399,3 @@ public class MainLayer {
         return MainPanel;
     }
 }
-
